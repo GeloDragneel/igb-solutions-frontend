@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import SearchCard from "../../components/SearchCard";
 import DataTable from "../../components/DataTable";
 import Badge from "../../components/Badge";
-import Modal, { Field } from "../../components/Modal";
-import { useToast } from "../../components/Toast";
+import Modal from "../../components/Modal";
 import { SALES_TABS } from "../../components/routesMeta";
 import { useAuth, apiFetch } from "../../context/AuthContext";
 import { usePeriod } from "../../context/PeriodContext";
@@ -60,7 +59,6 @@ export default function Sales() {
   const { from, to } = usePeriod();
   const navigate = useNavigate();
   const location = useLocation();
-  const notify = useToast();
 
   const fromMonth = from.slice(0, 7);
   const toMonth = to.slice(0, 7);
@@ -79,9 +77,6 @@ export default function Sales() {
       return next;
     });
   }, []);
-  const [selected, setSelected] = useState([]);
-  const [clearTicks, setClearTicks] = useState(0);
-  const [showMonth, setShowMonth] = useState(false);
   const [journalFor, setJournalFor] = useState(null);
   const [ticketFor, setTicketFor] = useState(null);
   const [form2307For, setForm2307For] = useState(null);
@@ -117,7 +112,7 @@ export default function Sales() {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.customer_name, r.invoice_no, r.document_no, r.status, r.audit_status].join(" ").toLowerCase().includes(q)
+      [r.customer_name, r.invoice_no, r.document_no, r.status, r.account].join(" ").toLowerCase().includes(q)
     );
   }, [rows, query]);
 
@@ -145,10 +140,9 @@ export default function Sales() {
     },
     { key: "document_no", label: "Document No", render: (r) => <Trunc text={r.document_no} max={160} /> },
     { key: "transaction_date", label: "Transaction Date", render: (r) => fmtDay(r.transaction_date) },
-    { key: "declared_month", label: "Declared Month" },
+    { key: "account", label: "Accounts", render: (r) => <Trunc text={r.account} max={220} /> },
     { key: "total", label: "Total", align: "right", value: (r) => Number(r.total), render: (r) => <span className="mono">{fmt4(r.total)}</span> },
     { key: "status", label: "Status", render: (r) => (r.status ? <Badge tone={statusTone(r.status)}>{r.status}</Badge> : "—") },
-    { key: "audit_status", label: "Audit Status", render: (r) => (r.audit_status ? <Badge tone={auditTone(r.audit_status)}>{r.audit_status}</Badge> : "—") },
   ];
 
   // the < > buttons in the details follow this list (what the search shows, same order)
@@ -166,11 +160,7 @@ export default function Sales() {
     // { label: "Voucher", onClick: () => alert(`Voucher for ${r.invoice_no}`) },
   ];
 
-  // "Update Declared Month" only when something is ticked
   const actions = [
-    ...(selected.length > 0
-      ? [{ label: `Update Declared Month (${selected.length})`, icon: "calendar", onClick: () => setShowMonth(true) }]
-      : []),
     { label: loading ? "Loading…" : "Refresh", icon: "refresh", onClick: load, disabled: loading },
     { label: "Add Sale", icon: "plus", variant: "primary", onClick: () => navigate("/task/sales/new") },
   ];
@@ -183,16 +173,6 @@ export default function Sales() {
         placeholder="Search customer, invoice or document no..."
         navTabs={SALES_TABS}
         actions={actions}
-        actionsLead={
-          selected.length > 0 && (
-            <div className="sel-chip">
-              <span>{selected.length} selected</span>
-              <button type="button" className="btn btn-sm" onClick={() => setClearTicks((n) => n + 1)}>
-                Clear
-              </button>
-            </div>
-          )
-        }
         sticky
       />
 
@@ -216,30 +196,10 @@ export default function Sales() {
             stateKey="sales"
             resetKey={query}
             emptyText="No sales for this period."
-            selectable
-            onSelectionChange={setSelected}
-            resetSelection={clearTicks}
             onRowClick={openInvoice}
             rowActions={rowActions}
           />
         </div>
-      )}
-
-      {showMonth && (
-        <OverrideModal
-          count={selected.length}
-          onClose={() => setShowMonth(false)}
-          onSubmit={async (form) => {
-            const res = await apiFetch("/sales/override", {
-              method: "POST",
-              body: JSON.stringify({ ids: selected, ...form }),
-            });
-            notify(`${res.updated} invoice(s) moved to ${form.declared_month}`);
-            setShowMonth(false);
-            setClearTicks((n) => n + 1);
-            load();
-          }}
-        />
       )}
 
       {journalFor && <JournalModal invoiceNo={journalFor} onClose={() => setJournalFor(null)} />}
@@ -261,7 +221,6 @@ function SalesTableSkeleton({ columns, bodyHeight, rows = 10 }) {
         <table className="table">
           <thead>
             <tr>
-              <th className="col-check"><span className="sk sk-check" /></th>
               {columns.map((c) => (
                 <th key={c.key} className={c.align ? `ta-${c.align}` : ""}>{c.label}</th>
               ))}
@@ -271,11 +230,10 @@ function SalesTableSkeleton({ columns, bodyHeight, rows = 10 }) {
           <tbody>
             {Array.from({ length: rows }).map((_, r) => (
               <tr key={r}>
-                <td className="col-check"><span className="sk sk-check" /></td>
                 {columns.map((c, i) => (
                   <td key={c.key} className={c.align ? `ta-${c.align}` : ""}>
                     <span
-                      className={`sk sk-cell ${c.key === "status" || c.key === "audit_status" ? "sk-pill" : ""}`}
+                      className={`sk sk-cell ${c.key === "status" ? "sk-pill" : ""}`}
                       style={{ width: widths[i % widths.length] }}
                     />
                   </td>
@@ -377,35 +335,6 @@ function JournalModal({ invoiceNo, onClose }) {
   );
 }
 
-/* ---------- Update Declared Month popup ---------- */
-function DeclaredMonthModal({ count, onClose, onSave }) {
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [saving, setSaving] = useState(false);
-
-  return (
-    <Modal
-      title="Update Declared Month"
-      onClose={onClose}
-      size="sm"
-      footer={
-        <>
-          <button className="btn" onClick={onClose} disabled={saving}>Close</button>
-          <button
-            className="btn btn-primary"
-            disabled={saving || !month}
-            onClick={async () => { setSaving(true); await onSave(month); setSaving(false); }}
-          >
-            {saving ? "Saving…" : `Update ${count} invoice(s)`}
-          </button>
-        </>
-      }
-    >
-      <Field label="New declared month">
-        <input type="month" className="input" value={month} onChange={(e) => setMonth(e.target.value)} />
-      </Field>
-    </Modal>
-  );
-}
 /* ---------- Text cut with "…"; tooltip only when it's actually cut ---------- */
 function Trunc({ text, className = "", max }) {
   const ref = useRef(null);
@@ -430,65 +359,5 @@ function Trunc({ text, className = "", max }) {
     >
       {text || "—"}
     </span>
-  );
-}
-/* ---------- Supervisor override (Update Declared Month) ---------- */
-function OverrideModal({ count, onClose, onSubmit }) {
-  const [f, setF] = useState({ declared_month: "", remarks: "", username: "", password: "" });
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
-
-  const submit = async () => {
-    if (!f.declared_month) return setError("Declared Month is required");
-    if (!f.username.trim()) return setError("Username is required");
-    if (!f.password) return setError("Password is required");
-    setError("");
-    setSaving(true);
-    try {
-      await onSubmit({ ...f, username: f.username.trim() });
-    } catch (e) {
-      setError(e.message || "Couldn't update the invoices.");
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Modal
-      title="Supervisor override"
-      onClose={onClose}
-      size="sm"
-      footer={
-        <>
-          <button className="btn" onClick={onClose} disabled={saving}>Close</button>
-          <button className="btn btn-primary" onClick={submit} disabled={saving}>
-            {saving ? "Submitting…" : `Submit (${count})`}
-          </button>
-        </>
-      }
-    >
-      {error && <div className="alert-error" role="alert">{error}</div>}
-      <div className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
-        <Field label="Declared Month">
-          <input type="month" className="input" value={f.declared_month} onChange={(e) => set("declared_month", e.target.value)} />
-        </Field>
-        <Field label="Remarks / Reason">
-          <textarea className="input" rows={3} maxLength={1000} value={f.remarks} onChange={(e) => set("remarks", e.target.value)} />
-        </Field>
-        <Field label="Username">
-          <input className="input" autoComplete="off" value={f.username} onChange={(e) => set("username", e.target.value)} />
-        </Field>
-        <Field label="Password">
-          <input
-            type="password"
-            className="input"
-            autoComplete="new-password"
-            value={f.password}
-            onChange={(e) => set("password", e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-          />
-        </Field>
-      </div>
-    </Modal>
   );
 }

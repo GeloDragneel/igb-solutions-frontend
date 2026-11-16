@@ -727,8 +727,13 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 </div>
 
                                 <div className="inv-col">
-                                    <Row label="Invoice Date" required error={errors.date}>
-                                        <input type="date" className={`input ${err("date")}`} value={f.date} onChange={(e) => set("date", e.target.value)} />
+                                    <Row label="Invoice Date" required error={errors.date || errors.declaredMonth}>
+                                        <input type="date" className={`input ${err("date")}`} value={f.date}
+                                            onChange={(e) => {
+                                                const d = e.target.value;
+                                                // Declared Month follows the Invoice Date (Oct 1 2026 → Oct 2026)
+                                                setF((x) => ({ ...x, date: d, declaredMonth: /^\d{4}-\d{2}/.test(d) ? d.slice(0, 7) : x.declaredMonth }));
+                                            }} />
                                     </Row>
                                     <Row label="Currency">
                                         <SearchSelect value={f.currency} onChange={(v) => set("currency", v)} options={CURRENCY_OPTS} aria-label="Currency" />
@@ -745,9 +750,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 </div>
 
                                 <div className="inv-col">
-                                    <Row label="Declared Month" required error={errors.declaredMonth}>
-                                        <input type="month" className={`input ${err("declaredMonth")}`} value={f.declaredMonth} onChange={(e) => set("declaredMonth", e.target.value)} />
-                                    </Row>
+                                    {/* Declared Month: hidden, follows the Invoice Date, still saved */}
                                     <Row label="Invoice No">
                                         <input className="input" readOnly value={f.invoiceNo || "(assigned when saved)"} />
                                     </Row>

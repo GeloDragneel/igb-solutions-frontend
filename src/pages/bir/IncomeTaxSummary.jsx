@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ConfirmDialog from "../../components/ConfirmDialog";
 import Modal from "../../components/Modal";
 import SearchSelect from "../../components/SearchSelect";
 import { useToast } from "../../components/Toast";
@@ -59,8 +58,8 @@ const manualRow = (type, months) => ({
 
 export const fromApi = (r) => ({
     sales: r.sales.map((x) => ({ ...x, uid: newUid() })),
-    purchases: [manualRow("COGS", r.months), ...r.purchases.map((x) => ({ ...x, uid: newUid() }))],
-    expenses: [manualRow("EXP", r.months), ...r.expenses.map((x) => ({ ...x, uid: newUid() }))],
+    purchases: r.purchases.map((x) => ({ ...x, uid: newUid() })),
+    expenses: r.expenses.map((x) => ({ ...x, uid: newUid() })),
     beg: { total: r.beginning, adjustment: 0 },
     end: { total: 0, adjustment: 0 },
     other: { total: 0, adjustment: 0 },
@@ -70,11 +69,16 @@ export const fromApi = (r) => ({
 });
 
 // saved adjustments get fresh row ids
+// (no Adjustment column any more → adjustments are cleared; empty manual lines are dropped)
+const noAdj = (f) => ({ ...(f || {}), adjustment: 0 });
+const keepRow = (x) => !x.manual || x.label || Number(x.total);
 const withNewUids = (st, months = []) => ({
     ...st,
-    sales: (st.sales || []).map((x) => ({ ...x, uid: newUid() })),
-    purchases: (st.purchases || []).map((x) => ({ ...x, uid: newUid() })),
-    expenses: (st.expenses || []).map((x) => ({ ...x, uid: newUid() })),
+    sales: (st.sales || []).filter(keepRow).map((x) => ({ ...x, adjustment: 0, uid: newUid() })),
+    purchases: (st.purchases || []).filter(keepRow).map((x) => ({ ...x, adjustment: 0, uid: newUid() })),
+    expenses: (st.expenses || []).filter(keepRow).map((x) => ({ ...x, adjustment: 0, uid: newUid() })),
+    beg: noAdj(st.beg), end: noAdj(st.end), other: noAdj(st.other),
+    taxPrev: noAdj(st.taxPrev), cwPrev: noAdj(st.cwPrev), cw2307: noAdj(st.cw2307),
 });
 
 /* ---------- old-system save → { months, st } ----------
@@ -314,8 +318,6 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
     const [error, setError] = useState("");
 
     const [docs, setDocs] = useState(null);         // documents popup
-    const [nonVat, setNonVat] = useState(null);     // non-VAT popup
-    const [move, setMove] = useState(null);         // confirm move
     const [saveAsk, setSaveAsk] = useState(null);   // existing version → ask
     const [picker, setPicker] = useState(null);     // several saved versions
     const [busy, setBusy] = useState(false);
@@ -374,37 +376,7 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
         [st, info, months]
     );
 
-    /* ---------- edits ---------- */
-    const patchRow = (sec, uid, patch) =>
-        setSt((s) => ({ ...s, [sec]: s[sec].map((r) => (r.uid === uid ? { ...r, ...(typeof patch === "function" ? patch(r) : patch) } : r)) }));
-
-    // small + : a new manual line under the other manual lines · × removes one
-    const addRow = (sec) =>
-        setSt((s) => {
-            const rows = s[sec];
-            const at = rows.reduce((last, r, i) => (r.manual ? i : last), -1) + 1;
-            return { ...s, [sec]: [...rows.slice(0, at), manualRow(sec === "purchases" ? "COGS" : "EXP", months), ...rows.slice(at)] };
-        });
-
-    const removeRow = (sec, uid) => setSt((s) => ({ ...s, [sec]: s[sec].filter((r) => r.uid !== uid) }));
-
-    const setManualValue = (sec, uid, m, v) =>
-        patchRow(sec, uid, (r) => {
-            const values = { ...r.values, [m]: v };
-            return { values, total: Object.values(values).reduce((a, x) => a + (Number(x) || 0), 0) };
-        });
-
     const patchField = (key, patch) => setSt((s) => ({ ...s, [key]: { ...s[key], ...patch } }));
-
-    const doMove = () => {
-        const { from: f, uid } = move;
-        const t = f === "expenses" ? "purchases" : "expenses";
-        setSt((s) => {
-            const row = s[f].find((r) => r.uid === uid);
-            return row ? { ...s, [f]: s[f].filter((r) => r.uid !== uid), [t]: [...s[t], row] } : s;
-        });
-        setMove(null);
-    };
 
     /* ---------- popups ---------- */
     const openDocs = async (type, refs, title) => {
@@ -416,27 +388,6 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
         } catch (e) {
             setDocs({ title, rows: [], error: e.message || "Couldn't load the documents." });
         }
-    };
-
-    const openNonVat = async (row) => {
-        setNonVat({ row, list: null, checked: {} });
-        try {
-            const list = await apiFetch(`/reports/income-tax-summary/nonvat?${new URLSearchParams({
-                account_code: row.code, from: used.from, to: used.to, branch: used.branch, ...scope,
-            })}`);
-            setNonVat({ row, list, checked: {} });
-        } catch (e) {
-            setNonVat({ row, list: [], checked: {}, error: e.message || "Couldn't load the Non-VAT list." });
-        }
-    };
-
-    const nonVatTotal = nonVat?.list ? nonVat.list.filter((x) => nonVat.checked[x.id]).reduce((a, x) => a + x.amount, 0) : 0;
-
-    const submitNonVat = () => {
-        if (!nonVatTotal) return notify("Tick at least one item to undeclare.", "error");
-        patchRow("expenses", nonVat.row.uid, (r) => ({ adjustment: (Number(r.adjustment) || 0) - nonVatTotal }));
-        notify(`Adjustment applied: ${n2(-nonVatTotal)}`);
-        setNonVat(null);
     };
 
     /* ---------- save / load adjustments ---------- */
@@ -570,72 +521,31 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
     };
 
     /* ---------- table pieces (plain functions, not components) ---------- */
-    const cols = months.length + 4;
+    const cols = months.length + 3;
     const dash = () => months.map((m) => <td key={m} className="ta-center muted">—</td>);
     const empty = () => months.map((m) => <td key={m} />);
 
-    const drillRow = (sec, r) => {
-        if (r.manual) {
-            return (
-                <tr key={r.uid} className="its-manual">
-                    <td className="its-label">
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <input className="xl-input its-in its-name" placeholder="+ Add item" value={r.label}
-                                onChange={(e) => patchRow(sec, r.uid, { label: e.target.value })} aria-label="Item name" style={{ flex: 1, minWidth: 0 }} />
-                            <button type="button" className="its-chip its-chip-red no-print" title="Remove this item"
-                                onClick={() => removeRow(sec, r.uid)} aria-label={`Remove ${r.label || "item"}`}>×</button>
-                        </div>
-                    </td>
-                    {months.map((m) => (
-                        <td key={m}><MoneyInput value={r.values[m]} allowNegative={false} label={`${monLabel(m)} amount`} onChange={(v) => setManualValue(sec, r.uid, m, v)} /></td>
-                    ))}
-                    <td className="ta-right mono">{n2(r.total)}</td>
-                    <td><MoneyInput value={r.adjustment} adj label="Adjustment" onChange={(v) => patchRow(sec, r.uid, { adjustment: v })} /></td>
-                    <td className="ta-right mono strong">{n2(r.total + r.adjustment)}</td>
-                </tr>
-            );
-        }
-        const isNonVat = sec === "expenses" && r.nonvat > 0;
-        return (
-            <tr key={r.uid} className={isNonVat ? "its-nonvat" : ""}>
-                <td className="its-label">
-                    {isNonVat ? (
-                        <button type="button" className="its-name-btn" onClick={() => openNonVat(r)} title="Choose Non-VAT items to undeclare">
-                            <i>{r.label}</i>
-                        </button>
-                    ) : <i>{r.label}</i>}
-                    {isNonVat && <span className="its-chip its-chip-red">NV {n2(r.nonvat)}</span>}
-                    {sec !== "sales" && (
-                        <button type="button" className="its-chip no-print" onClick={() => setMove({ from: sec, uid: r.uid, label: r.label })}>
-                            {sec === "expenses" ? "↑ Move" : "↓ Move"}
-                        </button>
-                    )}
+    const drillRow = (sec, r) => (
+        <tr key={r.uid}>
+            <td className="its-label"><i>{r.label || "(manual)"}</i></td>
+            {months.map((m) => (
+                <td key={m} className="ta-right mono">
+                    {r.values?.[m] && r.refs?.[m] ? (
+                        <button type="button" className="vs-link" onClick={() => openDocs(r.type, r.refs[m], `${r.label} · ${monLabel(m)}`)}>{n2(r.values[m])}</button>
+                    ) : n2(r.values?.[m])}
                 </td>
-                {months.map((m) => (
-                    <td key={m} className="ta-right mono">
-                        {r.values[m] && r.refs?.[m] ? (
-                            <button type="button" className="vs-link" onClick={() => openDocs(r.type, r.refs[m], `${r.label} · ${monLabel(m)}`)}>{n2(r.values[m])}</button>
-                        ) : n2(r.values[m])}
-                    </td>
-                ))}
-                <td className="ta-right mono">{n2(r.total)}</td>
-                <td><MoneyInput value={r.adjustment} adj label="Adjustment" onChange={(v) => patchRow(sec, r.uid, { adjustment: v })} /></td>
-                <td className="ta-right mono strong">{n2(r.total + r.adjustment)}</td>
-            </tr>
-        );
-    };
+            ))}
+            <td className="ta-right mono">{n2(r.total)}</td>
+            <td className="ta-right mono strong">{n2(r.total)}</td>
+        </tr>
+    );
 
-    const fieldRow = (key, label, { adjustable = true, allowNegative = false } = {}) => (
+    const fieldRow = (key, label, { allowNegative = false } = {}) => (
         <tr key={key}>
             <td className="its-label"><i>{label}</i></td>
             {dash()}
             <td><MoneyInput value={st[key].total} allowNegative={allowNegative} label={label} onChange={(v) => patchField(key, { total: v })} /></td>
-            <td>
-                {adjustable
-                    ? <MoneyInput value={st[key].adjustment} adj label={`${label} adjustment`} onChange={(v) => patchField(key, { adjustment: v })} />
-                    : <span className="its-ro mono">{n2(st[key].adjustment)}</span>}
-            </td>
-            <td className="ta-right mono strong">{n2(st[key].total + st[key].adjustment)}</td>
+            <td className="ta-right mono strong">{n2(st[key].total)}</td>
         </tr>
     );
 
@@ -646,7 +556,6 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
                 <td className={bold ? "its-label its-center" : "its-label"}>{bold ? <b><i>{label}</i></b> : <i>{label}</i>}</td>
                 {months.map((m) => <td key={m} className="ta-right mono">{f(x.values[m])}</td>)}
                 <td className="ta-right mono">{f(x.subtotal)}</td>
-                <td className="ta-right mono">{x.adjustment == null ? "" : f(x.adjustment)}</td>
                 <td className="ta-right mono strong">{f(x.total)}</td>
             </tr>
         );
@@ -655,23 +564,11 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
     const sumRow = (key, label, x, bold = true) =>
         calcRow(key, label, { values: x.values, subtotal: x.total, adjustment: x.adjustment, total: x.total + x.adjustment }, { bold });
 
-    const section = (label, sec) => (
+    const section = (label) => (
         <tr key={`sec-${label}`} className="its-sec">
             <td colSpan={cols}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 14, position: "sticky", left: 10 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", position: "sticky", left: 10 }}>
                     <i style={{ position: "static" }}>{label}</i>
-                    {sec && (
-                        <button type="button" className="no-print" title="Add item" aria-label={`Add item to ${label}`}
-                            onClick={() => addRow(sec)}
-                            style={{
-                                marginLeft: 0, display: "inline-flex", alignItems: "center", gap: 4, height: 24, padding: "0 10px",
-                                border: 0, borderRadius: 999, background: "var(--brand, #4f46e5)", color: "#fff",
-                                fontSize: 12, fontWeight: 700, fontStyle: "normal", cursor: "pointer", verticalAlign: "middle",
-                                boxShadow: "0 2px 6px rgba(79, 70, 229, .35)",
-                            }}>
-                            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add item
-                        </button>
-                    )}
                 </span>
             </td>
         </tr>
@@ -685,7 +582,6 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
             </td>
             {empty()}
             <td className={`ta-right mono ${bold && value < 0 ? "vs-neg" : ""}`}>{value === null ? "" : n2(value)}</td>
-            <td />
             <td className={`ta-right mono ${bold ? "strong" : ""} ${bold && value < 0 ? "vs-neg" : ""}`}>{value === null ? "" : n2(value)}</td>
         </tr>
     );
@@ -731,14 +627,13 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
                         <colgroup>
                             <col className="its-col-label" />
                             {months.map((m) => <col key={m} className="its-col-num" />)}
-                            <col className="its-col-num" /><col className="its-col-num" /><col className="its-col-num" />
+                            <col className="its-col-num" /><col className="its-col-num" />
                         </colgroup>
                         <thead>
                             <tr>
                                 <th className="its-label"><i>SALES</i></th>
                                 {months.map((m) => <th key={m} className="ta-right">{monLabel(m)}</th>)}
                                 <th className="ta-right">Sub Total</th>
-                                <th className="ta-right">Adjustment</th>
                                 <th className="ta-right">Total</th>
                             </tr>
                         </thead>
@@ -752,27 +647,27 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
                                     {st.sales.map((r) => drillRow("sales", r))}
                                     {sumRow("sales-total", "TOTAL SALES", c.S)}
 
-                                    {section("COST OF SALES", "purchases")}
+                                    {section("COST OF SALES")}
                                     {fieldRow("beg", "Merchandise Inventory, Beginning")}
                                     {st.purchases.map((r) => drillRow("purchases", r))}
                                     {calcRow("cogas", "Total cost of goods available for sale", c.cogas)}
-                                    {fieldRow("end", "Merchandise Inventory, Ending", { adjustable: false })}
+                                    {fieldRow("end", "Merchandise Inventory, Ending")}
                                     {calcRow("cogs", "TOTAL COST OF GOODS SOLD", c.totalCOGS, { bold: true })}
                                     {gap("g1")}
                                     {calcRow("gross", "GROSS AMOUNT", c.gross, { bold: true })}
                                     {calcRow("gpr", "Gross Profit Rate", c.gpr, { percent: true })}
 
-                                    {section("1601-C", "expenses")}
+                                    {section("1601-C")}
                                     {st.expenses.map((r) => drillRow("expenses", r))}
                                     {sumRow("exp-total", "TOTAL EXPENSES", c.E)}
                                     {calcRow("subject", "INCOME SUBJECT TO INCOME TAX", c.subject)}
-                                    {fieldRow("other", "Add: Other Income", { adjustable: false, allowNegative: true })}
+                                    {fieldRow("other", "Add: Other Income", { allowNegative: true })}
                                     {calcRow("taxable", "Total Taxable Income:", c.taxable)}
 
                                     {lineRow("less", <i>Less :</i>, c.tax.corporate ? "—" : n2(c.tax.bracket?.min ?? 0), null)}
                                     {lineRow("excess", <i>Excess</i>, c.tax.corporate ? "20% (corporate)" : pct(c.tax.rate), c.tax.excess)}
                                     {lineRow("tax", <i>Income Tax Expense</i>, undefined, c.tax.amount)}
-                                    {fieldRow("taxPrev", "Less: Tax Payments for the previous qtr", { adjustable: false })}
+                                    {fieldRow("taxPrev", "Less: Tax Payments for the previous qtr")}
                                     {fieldRow("cwPrev", "Creditable Withholding Tax-previous qtr")}
                                     {fieldRow("cw2307", "Creditable Withholding Tax-2307 for this qtr")}
                                     {lineRow("payable", <b><i>Income Tax Payable (excess)</i></b>, undefined, c.payable, true)}
@@ -808,68 +703,6 @@ export default function IncomeTaxSummary({ embedded = false, userIds = "", from:
                         </table>
                     </div>
                 </Modal>
-            )}
-
-            {/* ---------- Non-VAT list ---------- */}
-            {nonVat && (
-                <Modal
-                    title={`Non-VAT – ${nonVat.row.label}`}
-                    onClose={() => setNonVat(null)}
-                    size="xlg"
-                    footer={
-                        <div className="its-footer">
-                            <span>Selected: <strong className="mono">{n2(nonVatTotal)}</strong></span>
-                            <div>
-                                <button className="btn" onClick={() => setNonVat(null)}>Close</button>
-                                <button className="btn btn-primary" onClick={submitNonVat} disabled={!nonVatTotal}>Submit</button>
-                            </div>
-                        </div>
-                    }
-                >
-                    {nonVat.error && <div className="alert-error" role="alert">{nonVat.error}</div>}
-                    <p className="muted">Ticked items are taken out of this expense as a negative adjustment.</p>
-                    <div className="its-scroll">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th className="its-chk">
-                                        <input type="checkbox" aria-label="Select all"
-                                            checked={!!nonVat.list?.length && nonVat.list.every((x) => nonVat.checked[x.id])}
-                                            onChange={(e) => setNonVat((s) => ({ ...s, checked: Object.fromEntries(s.list.map((x) => [x.id, e.target.checked])) }))} />
-                                    </th>
-                                    <th>Vendor Name</th><th>Document No</th><th>Date</th><th>Declared Month</th><th className="ta-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {!nonVat.list && Array.from({ length: 3 }).map((_, i) => (
-                                    <tr key={i}>{Array.from({ length: 6 }).map((__, j) => <td key={j}><span className="sk sk-cell" /></td>)}</tr>
-                                ))}
-                                {nonVat.list?.length === 0 && !nonVat.error && <tr><td colSpan={6} className="empty">No Non-VAT items.</td></tr>}
-                                {nonVat.list?.map((x) => (
-                                    <tr key={x.id}>
-                                        <td className="its-chk">
-                                            <input type="checkbox" aria-label={`Select ${x.doc}`} checked={!!nonVat.checked[x.id]}
-                                                onChange={(e) => setNonVat((s) => ({ ...s, checked: { ...s.checked, [x.id]: e.target.checked } }))} />
-                                        </td>
-                                        <td>{x.vendor}</td><td>{x.doc}</td><td>{x.date}</td><td>{x.month}</td>
-                                        <td className="ta-right mono">{n2(x.amount)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Modal>
-            )}
-
-            {/* ---------- move a row ---------- */}
-            {move && (
-                <ConfirmDialog
-                    title={move.from === "expenses" ? "Move to Cost of Sales?" : "Move to Expenses?"}
-                    message={`"${move.label}" will be moved and every total below it recalculated.`}
-                    confirmLabel="Move"
-                    onCancel={() => setMove(null)}
-                    onConfirm={doMove}
-                />
             )}
 
             {/* ---------- you already saved this period ---------- */}
