@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { clearLookups } from "./LookupsContext";
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001/api";
 const KEY = "igb-auth";
 const AuthContext = createContext(null);
 
