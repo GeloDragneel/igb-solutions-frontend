@@ -12,11 +12,9 @@ import "./client/ClientCoa.css";
 
 const SECTIONS = [
     ["profile", "Profile"],
-    ["contact", "Contact"],
-    ["address", "Address"],
+    ["contact", "Contact & Address"],
     ["ownership", "Business Ownership"],
     ["classification", "Classification & Compliance"],
-    ["engagement", "Engagement"],
     ["ids", "Valid IDs"],
     ["accounts", "Business Accounts"],
     ["signin", "Sign-in (Google / Facebook)"],
@@ -187,7 +185,7 @@ export default function Settings() {
     });
     useEffect(() => {
         const q = new URLSearchParams(location.search);
-        const sec = q.get("section");
+        const sec = q.get("section") === "address" ? "contact" : q.get("section");   // Address is now inside Contact
         if (sec && (SECTIONS.some(([k]) => k === sec) || sec === "billing")) setSection(sec);   // from the welcome popup: open that part
         if (q.get("welcome") !== "1") return;
         setWelcome(true);
@@ -315,7 +313,6 @@ export default function Settings() {
     const saveClient = async () => {
         setAskSave(false);
         if (!form.last_name.trim()) { go("profile"); notify("Last name is required.", "error"); return; }
-        if (!form.industries_id) { go("engagement"); notify("Industry is required.", "error"); return; }
         setSaving(true);
         try {
             const body = { ...form };
@@ -713,13 +710,8 @@ export default function Settings() {
                                     <input className="input" type="email" value={form.email_address} onChange={(e) => set({ email_address: e.target.value })} />
                                 </label>
                             </div>
-                        </>
-                    )}
 
-                    {/* ADDRESS */}
-                    {section === "address" && (
-                        <>
-                            <h2 className="st-h">Client address</h2>
+                            <h2 className="st-h st-mt">Client address</h2>
                             <AddressPicker idPrefix="client" provinces={L.provinces}
                                 value={{ province_id: form.province_id, city_id: form.city_id, brgy_id: form.brgy_id }}
                                 onChange={(p) => set(p)} />
@@ -766,6 +758,17 @@ export default function Settings() {
                                     {form.business_ownership_type_detail_id && ` · ${bot.details.find((d) => String(d.id) === form.business_ownership_type_detail_id)?.label || ""}`}
                                 </p>
                             )}
+
+                            <div className="st-grid st-mt">
+                                <label className="field">
+                                    <span className="field-label">Date started</span>
+                                    <input type="date" className="input" value={form.date_started} onChange={(e) => set({ date_started: e.target.value })} />
+                                </label>
+                                <label className="field">
+                                    <span className="field-label">Date registered</span>
+                                    <input type="date" className="input" value={form.date_registered} onChange={(e) => set({ date_registered: e.target.value })} />
+                                </label>
+                            </div>
 
                             <h2 className="st-h st-mt">Withholding</h2>
                             <label className={`st-twa ${form.is_top_withholding_agent ? "is-on" : ""}`}>
@@ -851,35 +854,6 @@ export default function Settings() {
                                     );
                                 })}
                                 {!(L.compliance || []).length && <p className="muted">No compliance items found.</p>}
-                            </div>
-                        </>
-                    )}
-
-                    {/* ENGAGEMENT */}
-                    {section === "engagement" && (
-                        <>
-                            <h2 className="st-h">Engagement</h2>
-                            <div className="st-grid">
-                                <div className="field st-span2">
-                                    <span className="field-label">Industry</span>
-                                    <SearchSelect value={form.industries_id} options={opts(L.industries)} onChange={(v) => set({ industries_id: v })} aria-label="Industry" />
-                                </div>
-                                <label className="field">
-                                    <span className="field-label">Date of engagement</span>
-                                    <input type="date" className="input" value={form.date_of_engagement} onChange={(e) => set({ date_of_engagement: e.target.value })} />
-                                </label>
-                                <label className="field">
-                                    <span className="field-label">Date of disengagement</span>
-                                    <input type="date" className="input" value={form.date_of_disengagement} onChange={(e) => set({ date_of_disengagement: e.target.value })} />
-                                </label>
-                                <label className="field">
-                                    <span className="field-label">Date started</span>
-                                    <input type="date" className="input" value={form.date_started} onChange={(e) => set({ date_started: e.target.value })} />
-                                </label>
-                                <label className="field">
-                                    <span className="field-label">Date registered</span>
-                                    <input type="date" className="input" value={form.date_registered} onChange={(e) => set({ date_registered: e.target.value })} />
-                                </label>
                             </div>
                         </>
                     )}

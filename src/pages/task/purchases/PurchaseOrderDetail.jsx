@@ -486,7 +486,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
         if (!f.customerId) e.customerId = "Vendor is required.";
         if (!f.date) e.date = "PO Date is required.";
         if (!/^\d{4}-\d{2}$/.test(f.declaredMonth)) e.declaredMonth = "Declared Month is required.";
-        if (!String(f.documentNo || "").trim()) e.documentNo = "Document # is required.";
+        if (!String(f.documentNo || "").trim()) e.documentNo = "PO Number is required.";
         if (!String(f.accountCode || "").trim()) e.accountCode = "Accounts is required.";
 
         const lockedMonths = []; // a PO has no declared month
@@ -739,10 +739,10 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 </div>
 
                                 <div className="inv-col">
-                                    <Row label="PO No">
+                                    <Row label="Generated No">
                                         <input className="input" readOnly value={f.invoiceNo || "(assigned when saved)"} />
                                     </Row>
-                                    <Row label="Document #" required error={errors.documentNo}>
+                                    <Row label="PO Number" required error={errors.documentNo}>
                                         <input className={`input ${err("documentNo")}`} maxLength={100} value={f.documentNo} onChange={(e) => set("documentNo", e.target.value)} />
                                     </Row>
                                     <Row label="Document Type">
@@ -1821,7 +1821,7 @@ export function TicketViewModal({ ticketNo, onClose }) {
                             <dl className="tv-dl">
                                 <dt>Vendor</dt><dd>{m.customer_name}</dd>
                                 <dt>PO Date</dt><dd>{m.transaction_date}</dd>
-                                <dt>Document #</dt><dd>{m.document_no || "—"}</dd>
+                                <dt>PO Number</dt><dd>{m.document_no || "—"}</dd>
                                 <dt>Accounts</dt><dd>{m.account_code ? `${m.account_code} - ${m.account_name}` : "—"}</dd>
                                 <dt>Attachment</dt><dd className="tv-ellipsis" title={m.attachment || ""}>{m.attachment || "—"}</dd>
                                 {m.remarks && (<><dt>Remarks</dt><dd>{m.remarks}</dd></>)}

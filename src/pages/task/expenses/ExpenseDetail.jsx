@@ -367,6 +367,16 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     const fileRef = useRef(null);
 
     const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+
+    // 2307 (VT/PT) / 2307 (IT) Declared Month follow the Invoice Date (same as Declared Month)
+    useEffect(() => {
+        const m = /^\d{4}-\d{2}/.test(f.date || "") ? f.date.slice(0, 7) : "";
+        setF((x) => {
+            const vt = x.atcVtId ? m : "";
+            const it = x.atcItId ? m : "";
+            return x.atcVtMonth === vt && x.atcItMonth === it ? x : { ...x, atcVtMonth: vt, atcItMonth: it };
+        });
+    }, [f.date, f.atcVtId, f.atcItId]);
     const setLine = (i, patch) => setF((x) => ({ ...x, lines: x.lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) }));
 
     const locked = /VOID|CANCEL/i.test(f.status) || !!pendingTicket || (scanMode && scanStatus !== 0 && scanStatus !== 4);
@@ -873,9 +883,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                             </div>
                                         </SumRow>
                                         <SumRow label="2307 (VT/PT)"><input className="input ta-right" readOnly value={num4(calc.wtaxVT)} /></SumRow>
-                                        <SumRow label="2307 (VT/PT) Declared Month" error={errors.atcVtMonth}>
-                                            <input type="month" className={`input ${err("atcVtMonth")}`} value={f.atcVtMonth} onChange={(e) => set("atcVtMonth", e.target.value)} disabled={!f.atcVtId} />
-                                        </SumRow>
+                                        {/* 2307 (VT/PT) Declared Month: hidden, follows the Invoice Date, still saved */}
                                     </>
                                 )}
 
@@ -900,9 +908,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                             </div>
                                         </SumRow>
                                         <SumRow label="2307 (IT)"><input className="input ta-right" readOnly value={num4(calc.wtaxIT)} /></SumRow>
-                                        <SumRow label="2307 (IT) Declared Month" error={errors.atcItMonth}>
-                                            <input type="month" className={`input ${err("atcItMonth")}`} value={f.atcItMonth} onChange={(e) => set("atcItMonth", e.target.value)} disabled={!f.atcItId} />
-                                        </SumRow>
+                                        {/* 2307 (IT) Declared Month: hidden, follows the Invoice Date, still saved */}
                                     </>
                                 )}
                                 <SumRow label="Discount Type">
