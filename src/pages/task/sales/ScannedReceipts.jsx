@@ -8,6 +8,7 @@ import Icon from "../../../components/Icons";
 import { useToast } from "../../../components/Toast";
 import { SALES_TABS } from "../../../components/routesMeta";
 import { useAuth, apiFetch, apiBlob } from "../../../context/AuthContext";
+import Copyable from "../../../components/CopyCell";
 
 const TABLE_HEIGHT = "calc(100vh - 375px)";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -177,7 +178,7 @@ export default function ScannedReceipts() {
                     >
                         <Icon name="fileText" size={14} />
                     </button>
-                    <span className="mono">{r.filename}</span>
+                    <Copyable text={r.filename}><span className="mono">{r.filename}</span></Copyable>
                 </div>
             ),
         },
@@ -190,7 +191,7 @@ export default function ScannedReceipts() {
                 return <Badge tone={s.tone}>{s.label}</Badge>;
             },
         },
-        { key: "reference_no", label: "Invoice No", render: (r) => <span className="mono">{r.reference_no || "—"}</span> },
+        { key: "reference_no", label: "Invoice No", render: (r) => (r.reference_no ? <Copyable text={r.reference_no}><span className="mono">{r.reference_no}</span></Copyable> : <span className="mono">—</span>) },
         { key: "date_added", label: "Date Added", render: (r) => fmtDateTime(r.date_added) },
         { key: "date_updated", label: "Date Updated", render: (r) => fmtDateTime(r.date_updated) },
     ];

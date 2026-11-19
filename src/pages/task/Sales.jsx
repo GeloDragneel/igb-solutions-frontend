@@ -11,6 +11,7 @@ import { TicketViewModal } from "./sales/SalesDetail";
 import Icon from "../../components/Icons";
 import Form2307Modal from "../../components/invoice/Form2307Modal";
 import InvoiceLogsModal from "../../components/invoice/InvoiceLogsModal";
+import Copyable from "../../components/CopyCell";
 // search text kept per browser tab: survives refresh (F5), going back to the list and switching tabs
 const SEARCH_KEY = "sales.search";
 const readSearch = () => { try { return sessionStorage.getItem(SEARCH_KEY) || ""; } catch { return ""; } };
@@ -117,13 +118,13 @@ export default function Sales() {
   }, [rows, query]);
 
   const columns = [
-    { key: "customer_name", label: "Customer Name", render: (r) => <Trunc text={r.customer_name} className="strong" max={240} /> },
+    { key: "customer_name", label: "Customer Name", render: (r) => <Copyable text={r.customer_name}><Trunc text={r.customer_name} className="strong" max={240} /></Copyable> },
     {
       key: "invoice_no",
       label: "Invoice No",
       render: (r) => (
         <div className="inv-no-cell">
-          <span className="mono">{r.invoice_no}</span>
+          <Copyable text={r.invoice_no}><span className="mono">{r.invoice_no}</span></Copyable>
           {r.ticket_no && (
             <button
               type="button"
@@ -138,7 +139,7 @@ export default function Sales() {
         </div>
       ),
     },
-    { key: "document_no", label: "Document No", render: (r) => <Trunc text={r.document_no} max={160} /> },
+    { key: "document_no", label: "Document No", render: (r) => <Copyable text={r.document_no}><Trunc text={r.document_no} max={160} /></Copyable> },
     { key: "transaction_date", label: "Transaction Date", render: (r) => fmtDay(r.transaction_date) },
     { key: "account", label: "Accounts", render: (r) => <Trunc text={r.account} max={220} /> },
     { key: "total", label: "Total", align: "right", value: (r) => Number(r.total), render: (r) => <span className="mono">{fmt4(r.total)}</span> },

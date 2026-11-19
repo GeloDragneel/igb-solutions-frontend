@@ -1,0 +1,49 @@
+/* copy-to-clipboard icon on hover in list cells (Sales lists) */
+.copy-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.copy-cell>.cell-trunc {
+    min-width: 0;
+}
+
+.copy-btn {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted, #6b7280);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s, background .12s, color .12s;
+}
+
+td:hover .copy-btn,
+.copy-btn:focus-visible,
+.copy-btn.is-done {
+    opacity: 1;
+}
+
+.copy-btn:hover {
+    background: var(--hover, rgba(0, 0, 0, .06));
+    color: var(--brand, #2563eb);
+}
+
+.copy-btn.is-done {
+    color: #16a34a;
+}
+
+@media (hover: none) {
+    .copy-btn {
+        opacity: .6;
+    }
+}

@@ -11,6 +11,7 @@ import { useAuth, apiFetch } from "../../../context/AuthContext";
 import { usePeriod } from "../../../context/PeriodContext";
 import { statusTone, auditTone } from "../Sales";
 import { TicketViewModal } from "./SalesDetail";
+import Copyable from "../../../components/CopyCell";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const TABLE_HEIGHT = "calc(100vh - 375px)";
@@ -71,13 +72,13 @@ export default function ForCollection() {
     }, [rows, query]);
 
     const columns = [
-        { key: "customer_name", label: "Customer Name", render: (r) => <Trunc text={r.customer_name} className="strong" max={240} /> },
+        { key: "customer_name", label: "Customer Name", render: (r) => <Copyable text={r.customer_name}><Trunc text={r.customer_name} className="strong" max={240} /></Copyable> },
         {
             key: "invoice_no",
             label: "Invoice No",
             render: (r) => (
                 <div className="inv-no-cell">
-                    <span className="mono">{r.invoice_no}</span>
+                    <Copyable text={r.invoice_no}><span className="mono">{r.invoice_no}</span></Copyable>
                     {r.ticket_no && (
                         <button
                             type="button"
@@ -92,7 +93,7 @@ export default function ForCollection() {
                 </div>
             ),
         },
-        { key: "document_no", label: "Document No", render: (r) => <Trunc text={r.document_no} max={160} /> },
+        { key: "document_no", label: "Document No", render: (r) => <Copyable text={r.document_no}><Trunc text={r.document_no} max={160} /></Copyable> },
         { key: "transaction_date", label: "Transaction Date", render: (r) => fmtDay(r.transaction_date) },
         { key: "declared_month", label: "Declared Month" },
         { key: "total", label: "Total", align: "right", value: (r) => Number(r.total), render: (r) => <span className="mono">{fmt4(r.total)}</span> },

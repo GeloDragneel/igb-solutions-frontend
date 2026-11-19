@@ -811,68 +811,71 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                             </div>
 
                             <div className="inv-summary">
-                                <SumRow label="Sub Total"><input className="input ta-right" readOnly value={num4(calc.subTotal)} /></SumRow>
+                                {/* Sub Total · ATC / 2307 · Discount · Input VAT: hidden only (still computed and saved) */}
+                                <div style={{ display: "none" }}>
+                                    <SumRow label="Sub Total"><input className="input ta-right" readOnly value={num4(calc.subTotal)} /></SumRow>
 
-                                {!atcVTOpen ? (
-                                    <div className="inv-sum-row">
-                                        <span></span>
-                                        <button type="button" className="inv-apply-atc" onClick={() => setAtcVTOpen(true)}>+ Apply ATC (VT/PT)</button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <SumRow label="ATC (VT/PT)">
-                                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                                <SearchSelect value={f.atcVtId} onChange={(v) => set("atcVtId", v)} options={atcOpts} aria-label="ATC (VT/PT)" />
-                                                <button
-                                                    type="button"
-                                                    className="inv-icon danger"
-                                                    onClick={() => { setAtcVTOpen(false); set("atcVtId", ""); set("atcVtMonth", ""); }}
-                                                    aria-label="Remove ATC (VT/PT)"
-                                                >
-                                                    <Icon name="x" size={16} />
-                                                </button>
-                                            </div>
-                                        </SumRow>
-                                        <SumRow label="2307 (VT/PT)"><input className="input ta-right" readOnly value={num4(calc.wtaxVT)} /></SumRow>
-                                        <SumRow label="2307 (VT/PT) Declared Month">
-                                            <input type="month" className="input" value={f.atcVtMonth} onChange={(e) => set("atcVtMonth", e.target.value)} disabled={!f.atcVtId} />
-                                        </SumRow>
-                                    </>
-                                )}
+                                    {!atcVTOpen ? (
+                                        <div className="inv-sum-row">
+                                            <span></span>
+                                            <button type="button" className="inv-apply-atc" onClick={() => setAtcVTOpen(true)}>+ Apply ATC (VT/PT)</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <SumRow label="ATC (VT/PT)">
+                                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                    <SearchSelect value={f.atcVtId} onChange={(v) => set("atcVtId", v)} options={atcOpts} aria-label="ATC (VT/PT)" />
+                                                    <button
+                                                        type="button"
+                                                        className="inv-icon danger"
+                                                        onClick={() => { setAtcVTOpen(false); set("atcVtId", ""); set("atcVtMonth", ""); }}
+                                                        aria-label="Remove ATC (VT/PT)"
+                                                    >
+                                                        <Icon name="x" size={16} />
+                                                    </button>
+                                                </div>
+                                            </SumRow>
+                                            <SumRow label="2307 (VT/PT)"><input className="input ta-right" readOnly value={num4(calc.wtaxVT)} /></SumRow>
+                                            <SumRow label="2307 (VT/PT) Declared Month">
+                                                <input type="month" className="input" value={f.atcVtMonth} onChange={(e) => set("atcVtMonth", e.target.value)} disabled={!f.atcVtId} />
+                                            </SumRow>
+                                        </>
+                                    )}
 
-                                {!atcITOpen ? (
-                                    <div className="inv-sum-row">
-                                        <span></span>
-                                        <button type="button" className="inv-apply-atc" onClick={() => setAtcITOpen(true)}>+ Apply ATC (IT)</button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <SumRow label="ATC (IT)">
-                                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                                <SearchSelect value={f.atcItId} onChange={(v) => set("atcItId", v)} options={atcOpts} aria-label="ATC (IT)" />
-                                                <button
-                                                    type="button"
-                                                    className="inv-icon danger"
-                                                    onClick={() => { setAtcITOpen(false); set("atcItId", ""); set("atcItMonth", ""); }}
-                                                    aria-label="Remove ATC (IT)"
-                                                >
-                                                    <Icon name="x" size={16} />
-                                                </button>
-                                            </div>
-                                        </SumRow>
-                                        <SumRow label="2307 (IT)"><input className="input ta-right" readOnly value={num4(calc.wtaxIT)} /></SumRow>
-                                        <SumRow label="2307 (IT) Declared Month">
-                                            <input type="month" className="input" value={f.atcItMonth} onChange={(e) => set("atcItMonth", e.target.value)} disabled={!f.atcItId} />
-                                        </SumRow>
-                                    </>
-                                )}
-                                <SumRow label="Discount Type">
-                                    <SearchSelect value={f.discountTypeId} onChange={(v) => set("discountTypeId", v)} options={discountOpts} aria-label="Discount Type" />
-                                </SumRow>
-                                <SumRow label="Discount Amt" error={errors.discountAmt}>
-                                    <input className="input ta-right" readOnly value={num4(calc.discount)} />
-                                </SumRow>
-                                <SumRow label="Input VAT"><input className="input ta-right" readOnly value={num4(calc.outputVat)} /></SumRow>
+                                    {!atcITOpen ? (
+                                        <div className="inv-sum-row">
+                                            <span></span>
+                                            <button type="button" className="inv-apply-atc" onClick={() => setAtcITOpen(true)}>+ Apply ATC (IT)</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <SumRow label="ATC (IT)">
+                                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                    <SearchSelect value={f.atcItId} onChange={(v) => set("atcItId", v)} options={atcOpts} aria-label="ATC (IT)" />
+                                                    <button
+                                                        type="button"
+                                                        className="inv-icon danger"
+                                                        onClick={() => { setAtcITOpen(false); set("atcItId", ""); set("atcItMonth", ""); }}
+                                                        aria-label="Remove ATC (IT)"
+                                                    >
+                                                        <Icon name="x" size={16} />
+                                                    </button>
+                                                </div>
+                                            </SumRow>
+                                            <SumRow label="2307 (IT)"><input className="input ta-right" readOnly value={num4(calc.wtaxIT)} /></SumRow>
+                                            <SumRow label="2307 (IT) Declared Month">
+                                                <input type="month" className="input" value={f.atcItMonth} onChange={(e) => set("atcItMonth", e.target.value)} disabled={!f.atcItId} />
+                                            </SumRow>
+                                        </>
+                                    )}
+                                    <SumRow label="Discount Type">
+                                        <SearchSelect value={f.discountTypeId} onChange={(v) => set("discountTypeId", v)} options={discountOpts} aria-label="Discount Type" />
+                                    </SumRow>
+                                    <SumRow label="Discount Amt" error={errors.discountAmt}>
+                                        <input className="input ta-right" readOnly value={num4(calc.discount)} />
+                                    </SumRow>
+                                    <SumRow label="Input VAT"><input className="input ta-right" readOnly value={num4(calc.outputVat)} /></SumRow>
+                                </div>
                                 <SumRow label="Total"><input className="input ta-right inv-total" readOnly value={num4(calc.total)} /></SumRow>
                             </div>
                         </fieldset>

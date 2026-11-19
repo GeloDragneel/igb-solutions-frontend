@@ -436,7 +436,10 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     const accountOpts = salesAccounts.map((a) => ({ value: a.account_code, label: `${a.account_code} - ${a.account_name}` }));
     const debitOpts = [
         { value: "", label: "— None —" },
-        ...lookups.accounts.map((a) => ({ value: a.account_code, label: `${a.account_code} - ${a.account_name}` })),
+        // header Accounts: only codes starting with 1 or 2 (the invoice's saved account stays in the list)
+        ...lookups.accounts
+            .filter((a) => /^[12]/.test(String(a.account_code || "").trim()) || a.account_code === f.accountCode)
+            .map((a) => ({ value: a.account_code, label: `${a.account_code} - ${a.account_name}` })),
     ];
     const docOpts = [{ value: "", label: "— None —" }, ...lookups.document_types.map((d) => ({ value: String(d.id), label: d.name }))];
     const atcOpts = [
@@ -704,6 +707,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                     {/* ---------- fixed header ---------- */}
                     <header className="inv-head">
                         <h2>Purchases / Vendor Invoice</h2>
+                        <Badge tone={saved ? "green" : "blue"}>{saved ? "SAVED" : "NEW"}</Badge>
                         {isAuditor && f.auditStatus && <Badge tone={auditTone(f.auditStatus)}>{f.auditStatus}</Badge>}
                         <div className="inv-head-right">
                             {!isBilling && isAuditor && saved && (

@@ -148,6 +148,16 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
   const fileRef = useRef(null);
 
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+
+  // 2307 (VT/PT) / 2307 (IT) Declared Month follow the Date (same as Declared Month)
+  useEffect(() => {
+    const m = /^\d{4}-\d{2}/.test(f.date || "") ? f.date.slice(0, 7) : "";
+    setF((x) => {
+      const vt = x.atcVtId ? m : "";
+      const it = x.atcItId ? m : "";
+      return x.vtMonth === vt && x.itMonth === it ? x : { ...x, vtMonth: vt, itMonth: it };
+    });
+  }, [f.date, f.atcVtId, f.atcItId]);
   const setLine = (i, p) => setF((x) => ({ ...x, lines: x.lines.map((l, j) => (j === i ? { ...l, ...p } : l)) }));
   const removeLine = (i) => setF((x) => ({ ...x, lines: x.lines.length > 1 ? x.lines.filter((_, j) => j !== i) : [blank()] }));
 
@@ -412,7 +422,15 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
 
               {/* ---------- summary (old footer rows) ---------- */}
               <div className="inv-summary">
-                {/* Sub Total · ATC / 2307 · Discount · Input VAT are hidden (still computed and saved) */}
+                <SumRow label="Sub Total"><input className="input ta-right" readOnly value={num4(t.subTotal)} /></SumRow>
+                <SumRow label="ATC (VT/PT)"><SearchSelect value={f.atcVtId} onChange={(v) => set("atcVtId", v)} options={atcOpts} aria-label="ATC (VT/PT)" /></SumRow>
+                <SumRow label="2307 (VT/PT)"><input className="input ta-right" readOnly value={num4(t.vt)} /></SumRow>
+                {/* 2307 (VT/PT) Declared Month: hidden, follows the Date, still saved */}
+                <SumRow label="ATC (IT)"><SearchSelect value={f.atcItId} onChange={(v) => set("atcItId", v)} options={atcOpts} aria-label="ATC (IT)" /></SumRow>
+                <SumRow label="2307 (IT)"><input className="input ta-right" readOnly value={num4(t.it)} /></SumRow>
+                {/* 2307 (IT) Declared Month: hidden, follows the Date, still saved */}
+                <SumRow label="Discount Amt"><input className="input ta-right" readOnly value={num4(t.discount)} /></SumRow>
+                <SumRow label="Input VAT"><input className="input ta-right" readOnly value={num4(t.inputVat)} /></SumRow>
                 <SumRow label="Total"><input className="input ta-right inv-total" readOnly value={num4(t.total)} /></SumRow>
               </div>
             </fieldset>

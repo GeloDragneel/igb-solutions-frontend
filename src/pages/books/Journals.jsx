@@ -27,7 +27,14 @@ const FILTERS = [
     { value: "DE", label: "Date Encoded" },
 ];
 
-const n4 = (v) => (Number(v) ? Number(v).toLocaleString("en-PH", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : "");
+// 2 decimals, cut off (no rounding): 1,234.5678 → 1,234.56
+const n4 = (v) => {
+    const x = Number(v);
+    if (!x) return "";
+    const [i, d = ""] = Math.abs(x).toFixed(6).split(".");
+    const cut = Number(`${i}.${d.slice(0, 2)}`);
+    return (x < 0 ? "-" : "") + cut.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 /* =========================================================
    Books & Ledger → Journals
@@ -272,8 +279,8 @@ export default function Journals() {
                                 <tfoot>
                                     <tr>
                                         <td colSpan={5} />
-                                        <td className="ta-right mono strong jr-total">{n4(data.totals.debit) || "0.0000"}</td>
-                                        <td className="ta-right mono strong jr-total">{n4(data.totals.credit) || "0.0000"}</td>
+                                        <td className="ta-right mono strong jr-total">{n4(data.totals.debit) || "0.00"}</td>
+                                        <td className="ta-right mono strong jr-total">{n4(data.totals.credit) || "0.00"}</td>
                                     </tr>
                                 </tfoot>
                             )}

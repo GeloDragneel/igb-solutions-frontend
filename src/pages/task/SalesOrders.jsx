@@ -11,6 +11,7 @@ import { SALES_TABS } from "../../components/routesMeta";
 import { useAuth, apiFetch } from "../../context/AuthContext";
 import { usePeriod } from "../../context/PeriodContext";
 import { ORDER_PATH } from "./sales/SalesDetail";
+import Copyable from "../../components/CopyCell";
 
 const SEARCH_KEY = "sales-orders.search";
 const readSearch = () => { try { return sessionStorage.getItem(SEARCH_KEY) || ""; } catch { return ""; } };
@@ -100,17 +101,17 @@ export default function SalesOrders() {
     };
 
     const columns = [
-        { key: "customer_name", label: "Customer Name", render: (r) => <span className="cell-trunc strong" style={{ maxWidth: 240 }} title={r.customer_name}>{r.customer_name}</span> },
-        { key: "so_number", label: "SO No", render: (r) => <span className="mono">{r.so_number}</span> },
+        { key: "customer_name", label: "Customer Name", render: (r) => <Copyable text={r.customer_name}><span className="cell-trunc strong" style={{ maxWidth: 240 }} title={r.customer_name}>{r.customer_name}</span></Copyable> },
+        { key: "so_number", label: "SO No", render: (r) => <Copyable text={r.so_number}><span className="mono">{r.so_number}</span></Copyable> },
         {
             key: "invoice_no",
             label: "Invoice No",
             render: (r) => r.invoice_no
-                ? <button type="button" className="link-btn mono" style={{ border: 0, background: "none", padding: 0, color: "var(--brand)", cursor: "pointer", font: "inherit" }}
-                    onClick={(e) => { e.stopPropagation(); openInvoice(r.invoice_no); }}>{r.invoice_no}</button>
+                ? <Copyable text={r.invoice_no}><button type="button" className="link-btn mono" style={{ border: 0, background: "none", padding: 0, color: "var(--brand)", cursor: "pointer", font: "inherit" }}
+                    onClick={(e) => { e.stopPropagation(); openInvoice(r.invoice_no); }}>{r.invoice_no}</button></Copyable>
                 : <span className="muted">—</span>,
         },
-        { key: "document_no", label: "Document No", render: (r) => r.document_no || "—" },
+        { key: "document_no", label: "Document No", render: (r) => (r.document_no ? <Copyable text={r.document_no}>{r.document_no}</Copyable> : "—") },
         { key: "transaction_date", label: "Order Date", render: (r) => fmtDay(r.transaction_date) },
         { key: "account", label: "Accounts", render: (r) => <span className="cell-trunc" style={{ maxWidth: 220 }} title={r.account}>{r.account || "—"}</span> },
         { key: "total", label: "Total", align: "right", value: (r) => Number(r.total), render: (r) => <span className="mono">{fmt4(r.total)}</span> },

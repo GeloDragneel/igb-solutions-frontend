@@ -11,8 +11,15 @@ const FILTERS = [
     { value: "DM", label: "Declared Month" },
     { value: "DR", label: "Date Range" },
 ];
-const n4 = (v) => (Number(v) ? Number(v).toLocaleString("en-PH", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : "");
-const n2 = (v) => (Number(v) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// 2 decimals, cut off (no rounding): 1,234.5678 → 1,234.56
+const cut2 = (v) => {
+    const x = Number(v) || 0;
+    const [i, d = ""] = Math.abs(x).toFixed(6).split(".");
+    const t = Number(`${i}.${d.slice(0, 2)}`);
+    return (x < 0 && t ? "-" : "") + t.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+const n4 = (v) => (Number(v) ? cut2(v) : "");
+const n2 = (v) => cut2(v);
 
 /* =========================================================
    Financial Reports → Trial Balance
@@ -218,9 +225,9 @@ export default function TrialBalance() {
                                 <td className="no-print" />
                                 <td />
                                 <td className="strong">Total</td>
-                                <td className="ta-right mono strong">{n4(total.debit) || "0.0000"}</td>
-                                <td className="ta-right mono strong">{n4(total.credit) || "0.0000"}</td>
-                                <td className="ta-right mono strong">{n4(total.balance) || "0.0000"}</td>
+                                <td className="ta-right mono strong">{n4(total.debit) || "0.00"}</td>
+                                <td className="ta-right mono strong">{n4(total.credit) || "0.00"}</td>
+                                <td className="ta-right mono strong">{n4(total.balance) || "0.00"}</td>
                             </tr>
                         </tfoot>
                     )}
