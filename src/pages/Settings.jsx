@@ -227,6 +227,7 @@ export default function Settings() {
 
     // reminder: business accounts with no Charts of account yet
     const [noCoa, setNoCoa] = useState([]);
+    const [coaRev, setCoaRev] = useState(0);          // +1 after an account save → check again
     const [tour, setTour] = useState(null);           // { step, account } – short guide to pick the Charts of account
     const [editBusy, setEditBusy] = useState(false);
     const load = async () => {
@@ -295,7 +296,7 @@ export default function Settings() {
         })).then((r) => alive && setNoCoa(r.filter(Boolean)));
         return () => { alive = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [accKey]);
+    }, [accKey, coaRev]);
 
     /* ---------- derived ---------- */
     const clientName = useMemo(() => {
@@ -493,6 +494,7 @@ export default function Settings() {
             }
             notify(`${acct.id ? "Business account updated." : "Business account added."}${extra}`);
             setAcct(null);
+            setCoaRev((n) => n + 1);   // Charts of account may be saved now → refresh the reminder
         } catch (e) {
             setAcctError(e.message || "Couldn't save the business account.");
         } finally {
