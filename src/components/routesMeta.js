@@ -226,7 +226,7 @@ export const SALES_TABS = [
 
 export const PURCHASE_TABS = [
   { to: "/task/purchases", label: "Vendor Invoices", end: true },
-  { to: "/task/purchases/purchase-orders", label: "Purchase Order" },
+  // { to: "/task/purchases/purchase-orders", label: "Purchase Order" },
   { to: "/task/purchases/scanned-receipts", label: "Scanned Receipts" },
   { to: "/task/purchases/invalid", label: "Invalid - Partially Invalid - Cancel" },
   { to: "/task/purchases/for-payment", label: "For Payment" },
