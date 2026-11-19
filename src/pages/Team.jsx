@@ -83,21 +83,8 @@ const pageList = (page, pages) => {
    ========================================================= */
 function ModuleTree({ modules, rights, onChange }) {
     const [open, setOpen] = useState({});
-    const [q, setQ] = useState("");
     const has = (id) => rights.includes(id);
-
-    const shown = useMemo(() => {
-        const s = q.trim().toLowerCase();
-        if (!s) return modules;
-        return modules
-            .map((m) => ({
-                ...m,
-                children: m.name.toLowerCase().includes(s)
-                    ? m.children
-                    : m.children.filter((c) => c.name.toLowerCase().includes(s)),
-            }))
-            .filter((m) => m.name.toLowerCase().includes(s) || m.children.length);
-    }, [modules, q]);
+    const shown = modules;
 
     const setMany = (ids, on) => {
         const set = new Set(rights);
@@ -117,18 +104,11 @@ function ModuleTree({ modules, rights, onChange }) {
     };
 
     const allIds = modules.flatMap((m) => [m.id, ...m.children.map((c) => c.id)]);
-    const expanded = (m) => open[m.id] ?? !!q;
+    const expanded = (m) => !!open[m.id];
 
     return (
         <div className="tm-tree">
             <div className="tm-tree-tools">
-                <input
-                    className="input tm-tree-search"
-                    placeholder="Search modules"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    aria-label="Search modules"
-                />
                 <button type="button" className="btn btn-sm" onClick={() => setOpen(Object.fromEntries(modules.map((m) => [m.id, true])))}>
                     Expand all
                 </button>
@@ -144,7 +124,6 @@ function ModuleTree({ modules, rights, onChange }) {
             </div>
 
             {!modules.length && <p className="muted">No modules yet. Run the m_menu_data copy script.</p>}
-            {modules.length > 0 && !shown.length && <p className="muted">No module matches “{q}”.</p>}
 
             <ul className="tm-list">
                 {shown.map((m) => {
