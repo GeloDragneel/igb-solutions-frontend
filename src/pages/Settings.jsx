@@ -9,6 +9,7 @@ import { useToast } from "../components/Toast";
 import { useAuth, apiFetch } from "../context/AuthContext";
 import { CoaPicker, PwInput } from "./client/ClientPopups";
 import "./client/ClientCoa.css";
+import "./SettingsCoaTour.css";
 
 const SECTIONS = [
     ["profile", "Profile"],
@@ -223,6 +224,10 @@ export default function Settings() {
 
     const panelRef = useRef(null);
     const [editId, setEditId] = useState(null);       // { id, institution, id_num }
+
+    // reminder: business accounts with no Charts of account yet
+    const [noCoa, setNoCoa] = useState([]);
+    const [tour, setTour] = useState(null);           // { step, account } – short guide to pick the Charts of account
     const [editBusy, setEditBusy] = useState(false);
     const load = async () => {
         setError("");
@@ -274,6 +279,23 @@ export default function Settings() {
         setSection(key);
         panelRef.current?.scrollTo?.({ top: 0 });
     };
+
+    // which active business accounts have no Charts of account yet (checked again after every account save)
+    const accKey = (data?.accounts || []).map((a) => `${a.id}:${a.nob_id || ""}:${a.is_active}`).join("|");
+    useEffect(() => {
+        const list = (data?.accounts || []).filter(isActive);
+        if (!list.length) { setNoCoa([]); return undefined; }
+        let alive = true;
+        Promise.all(list.map((a) => {
+            const qs = new URLSearchParams({ ca_id: a.id });
+            if (a.nob_id) qs.set("nob_id", a.nob_id);
+            return apiFetch(`/settings/account-extras?${qs}`)
+                .then((r) => ((r.have || []).length ? null : a))
+                .catch(() => null);
+        })).then((r) => alive && setNoCoa(r.filter(Boolean)));
+        return () => { alive = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accKey]);
 
     /* ---------- derived ---------- */
     const clientName = useMemo(() => {
@@ -355,6 +377,32 @@ export default function Settings() {
             : { ...EMPTY_ACCOUNT });
     };
     const setA = (patch) => setAcct((a) => ({ ...a, ...patch }));
+
+    /* ---------- short tour: pick the Charts of account ---------- */
+    const TOUR = [
+        { target: '[data-tour="nav-accounts"]', title: "Business Accounts", text: "Your branches are listed under Business Accounts." },
+        { target: (a) => `[data-tour="acc-${a.id}"]`, title: "Open the account", text: (a) => `Click ${a.trade_name || "the business account"} to edit it.` },
+        { target: '[data-tour="tab-coa"]', title: "Charts of account tab", text: "Open the Charts of account tab. No list? Pick the Nature of business in Information first." },
+        { target: '[data-tour="acct-save"]', title: "Tick and save", text: "Tick the accounts this branch uses, then press Update." },
+    ];
+    const startTour = (a) => setTour({ step: 0, account: a });
+    useEffect(() => {
+        if (!tour) return undefined;
+        const a = tour.account;
+        // move the page to where the step is
+        if (tour.step <= 1) { setAcct(null); go("accounts"); }
+        if (tour.step === 2 && acct?.id !== a.id) openAccount(a);
+        if (tour.step === 3) setAcctTab("coa");
+        const t = TOUR[tour.step].target;
+        const sel = typeof t === "function" ? t(a) : t;
+        let el = null;
+        const timer = setTimeout(() => {
+            el = document.querySelector(sel);
+            if (el) { el.classList.add("coa-tour-hl"); el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+        }, 150);
+        return () => { clearTimeout(timer); el?.classList.remove("coa-tour-hl"); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tour]);
 
     // the account's login + the chart of its nature of business (reloads when the nature changes)
     const acctId = acct?.id || 0;
@@ -599,14 +647,31 @@ export default function Settings() {
                 );
             })()}
 
+            {noCoa.length > 0 && !tour && (
+                <div className="coa-remind" role="status">
+                    <span className="coa-remind-icon" aria-hidden="true">!</span>
+                    <div className="coa-remind-text">
+                        <b>No Charts of account yet</b>
+                        <span>
+                            {noCoa.length === 1
+                                ? <>{noCoa[0].trade_name} ({noCoa[0].branch_code}) has no Charts of account. Sales, purchases and reports need it.</>
+                                : <>{noCoa.length} business accounts have no Charts of account: {noCoa.map((a) => a.trade_name).join(", ")}.</>}
+                        </span>
+                    </div>
+                    <button type="button" className="btn btn-sm" onClick={() => startTour(noCoa[0])}>Show me how</button>
+                    <button type="button" className="btn btn-sm btn-primary" onClick={() => { go("accounts"); openAccount(noCoa[0]); setAcctTab("coa"); }}>Set up now</button>
+                </div>
+            )}
+
             <div className="st-layout">
                 {/* ---------- left nav ---------- */}
                 <nav className="card st-nav" aria-label="Settings sections">
                     {navSections.map(([k, l]) => (
                         <button key={k} type="button" className={`st-nav-item ${section === k ? "is-active" : ""}`}
-                            aria-current={section === k ? "page" : undefined} onClick={() => go(k)}>
+                            data-tour={`nav-${k}`} aria-current={section === k ? "page" : undefined} onClick={() => go(k)}>
                             <span>{l}</span>
                             {k === "accounts" && <span className="st-badge">{data.accounts.length}</span>}
+                            {k === "accounts" && noCoa.length > 0 && <span className="coa-dot" title="Some accounts have no Charts of account yet" aria-label="Needs attention" />}
                             {k === "ids" && <span className="st-badge">{data.valid_ids.length}</span>}
                         </button>
                     ))}
@@ -1010,7 +1075,7 @@ export default function Settings() {
                                             className={`ba-row ${main ? "is-main" : ""} ${active ? "" : "is-off"}`}
                                             onClick={() => openAccount(a)}
                                             onKeyDown={(e) => { if (e.key === "Enter") openAccount(a); }}
-                                            tabIndex={0} aria-label={`Edit ${a.trade_name}`}>
+                                            tabIndex={0} aria-label={`Edit ${a.trade_name}`} data-tour={`acc-${a.id}`}>
                                             <div className="ba-code" aria-hidden="true">
                                                 <span className="ba-code-lbl">CODE</span>
                                                 <span className="ba-code-n mono">{a.branch_code || "—"}</span>
@@ -1020,6 +1085,7 @@ export default function Settings() {
                                                 <div className="ba-name-row">
                                                     <span className="ba-name">{a.trade_name || "Untitled account"}</span>
                                                     {main && <span className="ba-main-tag">MAIN</span>}
+                                                    {noCoa.some((x) => x.id === a.id) && <span className="coa-tag">No Charts of account</span>}
                                                 </div>
                                                 <div className="ba-sub">
                                                     <span>{a.nature_label || "No nature of business"}</span>
@@ -1100,7 +1166,7 @@ export default function Settings() {
                     footer={
                         <div className="tm-foot">
                             <button className="btn" onClick={() => setAcct(null)}>Close</button>
-                            <button className="btn btn-primary" onClick={saveAccount} disabled={acctSaving}>
+                            <button className="btn btn-primary" data-tour="acct-save" onClick={() => { setTour(null); saveAccount(); }} disabled={acctSaving}>
                                 {acctSaving ? "Saving…" : acct.id ? "Update" : "Register"}
                             </button>
                         </div>
@@ -1108,7 +1174,7 @@ export default function Settings() {
                 >
                     <div className="st-tabs" role="tablist">
                         {[["info", "Information"], ["address", "Address & contact"], ["login", "Login"], ["coa", "Charts of account"]].map(([k, l]) => (
-                            <button key={k} type="button" role="tab" aria-selected={acctTab === k}
+                            <button key={k} type="button" role="tab" aria-selected={acctTab === k} data-tour={`tab-${k}`}
                                 className={`st-tab ${acctTab === k ? "is-active" : ""}`} onClick={() => setAcctTab(k)}>{l}</button>
                         ))}
                     </div>
@@ -1259,6 +1325,28 @@ export default function Settings() {
                     {delAcct.error && <div className="alert-error st-mt" role="alert">{delAcct.error}</div>}
                 </Modal>
             )}
+
+            {/* ---------- tour card ---------- */}
+            {tour && (() => {
+                const st = TOUR[tour.step];
+                const last = tour.step === TOUR.length - 1;
+                return (
+                    <div className="coa-tour" role="dialog" aria-label="Charts of account guide">
+                        <div className="coa-tour-top">
+                            <span className="coa-tour-n">Step {tour.step + 1} of {TOUR.length}</span>
+                            <button type="button" className="coa-tour-x" onClick={() => setTour(null)} aria-label="Close the guide">×</button>
+                        </div>
+                        <b>{st.title}</b>
+                        <p>{typeof st.text === "function" ? st.text(tour.account) : st.text}</p>
+                        <div className="coa-tour-nav">
+                            <button type="button" className="btn btn-sm" disabled={!tour.step} onClick={() => setTour((t) => ({ ...t, step: t.step - 1 }))}>‹ Back</button>
+                            {last
+                                ? <button type="button" className="btn btn-sm btn-primary" onClick={() => setTour(null)}>Got it</button>
+                                : <button type="button" className="btn btn-sm btn-primary" onClick={() => setTour((t) => ({ ...t, step: t.step + 1 }))}>Next ›</button>}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ---------- remove a valid ID ---------- */}
             {delId && (
