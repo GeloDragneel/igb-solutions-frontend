@@ -22,6 +22,8 @@ import DuplicateDocModal from "../../../components/invoice/DuplicateDocModal";
 const CURRENCY_OPTS = ["PHP", "USD", "EUR", "JPY"].map((c) => ({ value: c, label: c }));
 const AUDITOR_DESIGNATIONS = [5, 10];
 const FOR_COLLECTION_PATH = "/task/sales/for-collection"; // change if your route is different
+// Sales Order: the same form on /task/sales-orders/:id (saves to t_sales_order_master / detail)
+export const ORDER_PATH = "/task/sales-orders";
 
 const AUDIT_CHOICES = [
     { id: 2, name: "AUDITED" },
@@ -121,6 +123,7 @@ export default function SalesDetail() {
     const location = useLocation();
     const invoiceNo = decodeURIComponent(id || "");
     const isNew = invoiceNo === "new";
+    const isOrder = location.pathname.startsWith(ORDER_PATH);
     const { lookups, setLookups, ready, error: lkError, refresh } = useLookups();
 
     const [data, setData] = useState(null);
@@ -135,11 +138,11 @@ export default function SalesDetail() {
         let alive = true;
         setError("");
         setData(null);
-        apiFetch(`/sales/invoice/${encodeURIComponent(invoiceNo)}`)
+        apiFetch(isOrder ? `/sales-orders/order/${encodeURIComponent(invoiceNo)}` : `/sales/invoice/${encodeURIComponent(invoiceNo)}`)
             .then((inv) => alive && setData(inv))
             .catch((e) => alive && setError(e.status === 404 ? "404" : e.message || "Couldn't load the invoice."));
         return () => { alive = false; };
-    }, [invoiceNo, isNew, reloadKey]);
+    }, [invoiceNo, isNew, reloadKey, isOrder]);
 
     const lk = useMemo(() => {
         if (!lookups) return null;
@@ -156,9 +159,9 @@ export default function SalesDetail() {
         return (
             <div className="card not-found">
                 <div className="nf-code">404</div>
-                <h2>Invoice {invoiceNo} not found</h2>
+                <h2>{isOrder ? "Sales order" : "Invoice"} {invoiceNo} not found</h2>
                 <p>It may have been deleted, or it belongs to another account.</p>
-                <Link to={location.state?.from || "/task/sales"} className="btn btn-primary">Back</Link>
+                <Link to={location.state?.from || (isOrder ? ORDER_PATH : "/task/sales")} className="btn btn-primary">Back</Link>
             </div>
         );
     }
@@ -176,7 +179,8 @@ export default function SalesDetail() {
 
     return (
         <InvoiceForm
-            key={`${invoiceNo}-${reloadKey}-${location.state?.scan?.scan_id || ""}`}
+            key={`${isOrder ? "so" : "inv"}-${invoiceNo}-${reloadKey}-${location.state?.scan?.scan_id || ""}`}
+            isOrder={isOrder}
             lookups={lk}
             setLookups={setLookups}
             data={current}
@@ -188,7 +192,7 @@ export default function SalesDetail() {
 /* =========================================================
    Form
    ========================================================= */
-function InvoiceForm({ lookups, setLookups, data, onReload }) {
+function InvoiceForm({ lookups, setLookups, data, onReload, isOrder = false }) {
     const navigate = useNavigate();
     const location = useLocation();
     const notify = useToast();
@@ -199,17 +203,19 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     const saved = !!inv;
     const pendingTicket = data?.ticket || null;
     const isBilling = String(inv?.trans_type || "").toLowerCase() === "billing";
-    const isAuditor = AUDITOR_DESIGNATIONS.includes(Number(user?.designation_id));
+    const isAuditor = !isOrder && AUDITOR_DESIGNATIONS.includes(Number(user?.designation_id));
+    const detailPath = isOrder ? ORDER_PATH : "/task/sales";
+    const linkedInvoice = isOrder ? inv?.linked_invoice_no || "" : "";   // the sales invoice made from this order
 
-    const backTo = location.state?.from || (isBilling ? FOR_COLLECTION_PATH : "/task/sales");
+    const backTo = location.state?.from || (isOrder ? ORDER_PATH : isBilling ? FOR_COLLECTION_PATH : "/task/sales");
     // invoice list from the Sales page (search result) → the < > buttons follow it
     const navList = Array.isArray(location.state?.list) ? location.state.list : null;
     const navState = { state: { from: backTo, ...(navList ? { list: navList } : {}) } };
 
     // data from a scanned receipt (only for a new invoice)
-    const scan = !saved ? location.state?.scan || null : null;
+    const scan = !saved && !isOrder ? location.state?.scan || null : null;
     // scanned receipt opened again (from Scanned Receipts / For Collection)
-    const scanRec = saved && location.state?.fromScan ? data?.scan || null : null;
+    const scanRec = saved && !isOrder && location.state?.fromScan ? data?.scan || null : null;
     const scanStatus = scan ? 0 : scanRec ? Number(scanRec.trans_status) : null; // same as old TransStatus
     const scanMode = scanStatus !== null;
     // split layout (fields left, file right): scanned receipts, and auditors (5 / 10) on saved invoices
@@ -349,7 +355,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     }, [f.date, f.atcVtId, f.atcItId]);
     const setLine = (i, patch) => setF((x) => ({ ...x, lines: x.lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) }));
 
-    const locked = /VOID|CANCEL/i.test(f.status) || !!pendingTicket || (scanMode && scanStatus !== 0 && scanStatus !== 4);
+    const locked = /VOID|CANCEL/i.test(f.status) || !!pendingTicket || (scanMode && scanStatus !== 0 && scanStatus !== 4) || !!linkedInvoice;
     const calc = invoiceCalc(f, lookups.atc);
 
     const itemsById = useMemo(() => Object.fromEntries(lookups.items.map((i) => [String(i.id), i])), [lookups.items]);
@@ -377,7 +383,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
             .then(setNav)
             .catch(() => setNav({ prev: null, next: null }));
     }, [isAuditor, inv?.invoice_no, from, to, navList]);
-    const goTo = (no) => no && navigate(`/task/sales/${encodeURIComponent(no)}`, navState);
+    const goTo = (no) => no && navigate(`${detailPath}/${encodeURIComponent(no)}`, navState);
 
     /* ---------- dropdown options ---------- */
     const customerOpts = [
@@ -529,7 +535,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     // Document No. already used (123 vs 123-155-125 …) → popup with the matches + supervisor override, before the review
     const [dupFor, setDupFor] = useState(null);   // { body, matches }
     const openReview = async (body) => {
-        if (body.document_no && !body.scan_action && !body.doc_override_token) {
+        if (!isOrder && body.document_no && !body.scan_action && !body.doc_override_token) {
             try {
                 const r = await apiFetch(`/sales/document-check?document_no=${encodeURIComponent(body.document_no)}`);
                 if (r.matches?.length) { setDupFor({ body, matches: r.matches }); return; }
@@ -542,15 +548,60 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
         setSaveError("");
         const locked = await freshLocked();
         if (!validate({ locked })) return setSaveError("Please fix the highlighted fields.");
+        if (saved && isOrder) return updateOrder(buildBody());
         if (saved) setTicket({ ...buildBody(), action: "EDIT" });
         else openReview(buildBody());
+    };
+
+    /* ---------- Sales Order: edit · void · Create Invoice ---------- */
+    const [orderBusy, setOrderBusy] = useState("");
+    const [confirmOrderVoid, setConfirmOrderVoid] = useState(false);
+    const [confirmCreateInvoice, setConfirmCreateInvoice] = useState(false);
+    const updateOrder = async (body) => {
+        setSaving(true);
+        try {
+            await apiFetch(`/sales-orders/${f.id}`, { method: "PUT", body: JSON.stringify(body) });
+            notify(`${f.invoiceNo} saved`);
+            onReload();
+        } catch (e) {
+            setSaveError(e.message || "Couldn't save the sales order.");
+        } finally {
+            setSaving(false);
+        }
+    };
+    const voidOrder = async () => {
+        setOrderBusy("void");
+        try {
+            const r = await apiFetch(`/sales-orders/${f.id}/void`, { method: "POST" });
+            notify(r.message);
+            onReload();
+        } catch (e) {
+            notify(e.message || "Couldn't void the sales order.", "error");
+        } finally {
+            setOrderBusy("");
+            setConfirmOrderVoid(false);
+        }
+    };
+    const createInvoice = async () => {
+        setOrderBusy("invoice");
+        try {
+            const r = await apiFetch(`/sales-orders/${f.id}/create-invoice`, { method: "POST" });
+            notify(r.message);
+            setConfirmCreateInvoice(false);
+            navigate(`/task/sales/${encodeURIComponent(r.invoice_no)}`, { state: { from: `${ORDER_PATH}/${encodeURIComponent(f.invoiceNo)}` } });
+        } catch (e) {
+            notify(e.message || "Couldn't create the invoice.", "error");
+            setConfirmCreateInvoice(false);
+        } finally {
+            setOrderBusy("");
+        }
     };
 
     const submitNew = async () => {
         setSaving(true);
         try {
-            const res = await apiFetch("/sales", { method: "POST", body: JSON.stringify(review) });
-            if (pendingFile) {
+            const res = await apiFetch(isOrder ? "/sales-orders" : "/sales", { method: "POST", body: JSON.stringify(review) });
+            if (pendingFile && !isOrder) {
                 try {
                     await apiUpload(`/sales/${res.id}/attachment`, pendingFile);
                 } catch (err) {
@@ -560,7 +611,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
             notify(`${res.invoice_no} created`);
             setReview(null);
             setPendingFile(null);
-            navigate(`/task/sales/${encodeURIComponent(res.invoice_no)}`, { replace: true, ...navState });
+            navigate(`${detailPath}/${encodeURIComponent(res.invoice_no)}`, { replace: true, ...navState });
         } catch (e) {
             // document no. already used → the supervisor override popup (also when the check before the review couldn't run)
             if (/supervisor override/i.test(e.message || "") && !review?.doc_override_token) {
@@ -658,7 +709,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                 <section className="card inv-card">
                     {/* ---------- fixed header ---------- */}
                     <header className="inv-head">
-                        <h2>Sales / Invoicing</h2>
+                        <h2>{isOrder ? "Sales / Sales Order" : "Sales / Invoicing"}</h2>
                         {isAuditor && f.auditStatus && <Badge tone={auditTone(f.auditStatus)}>{f.auditStatus}</Badge>}
                         <div className="inv-head-right">
                             {!isBilling && isAuditor && saved && (
@@ -707,6 +758,11 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                             </div>
                         ) : scanMode && SCAN_LABEL[scanStatus] ? (
                             <div className="inv-banner">This receipt is <strong>{SCAN_LABEL[scanStatus]}</strong> and can't be edited.</div>
+                        ) : linkedInvoice ? (
+                            <div className="inv-banner ticket-banner">
+                                <span>This order was invoiced as <strong>{linkedInvoice}</strong> and can't be edited.</span>
+                                <button type="button" className="btn btn-sm" onClick={() => navigate(`/task/sales/${encodeURIComponent(linkedInvoice)}`, { state: { from: `${ORDER_PATH}/${encodeURIComponent(f.invoiceNo)}` } })}>Open invoice</button>
+                            </div>
                         ) : locked && (
                             <div className="inv-banner">
                                 This invoice is <strong>{f.status.toLowerCase()}</strong> and can't be edited.
@@ -737,7 +793,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 </div>
 
                                 <div className="inv-col">
-                                    <Row label="Invoice Date" required error={errors.date || errors.declaredMonth}>
+                                    <Row label={isOrder ? "Order Date" : "Invoice Date"} required error={errors.date || errors.declaredMonth}>
                                         <input type="date" className={`input ${err("date")}`} value={f.date}
                                             onChange={(e) => {
                                                 const d = e.target.value;
@@ -751,7 +807,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                     <Row label="Exchange Rate" error={errors.exRate}>
                                         <input type="number" step="0.0001" min="0" className={`input ta-right ${err("exRate")}`} value={f.exRate} onChange={(e) => set("exRate", e.target.value)} />
                                     </Row>
-                                    <Row label="Invoice Status">
+                                    <Row label={isOrder ? "Order Status" : "Invoice Status"}>
                                         <input className="input" readOnly value={String(f.status).toUpperCase()} />
                                     </Row>
                                     <Row label="Remarks">
@@ -761,9 +817,14 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
 
                                 <div className="inv-col">
                                     {/* Declared Month: hidden, follows the Invoice Date, still saved */}
-                                    <Row label="Invoice No">
+                                    <Row label={isOrder ? "SO No" : "Invoice No"}>
                                         <input className="input" readOnly value={f.invoiceNo || "(assigned when saved)"} />
                                     </Row>
+                                    {isOrder && (
+                                        <Row label="Invoice No">
+                                            <input className="input" readOnly value={linkedInvoice || "(not invoiced yet)"} />
+                                        </Row>
+                                    )}
                                     <Row label="Document #" required error={errors.documentNo}>
                                         <input className={`input ${err("documentNo")}`} maxLength={100} value={f.documentNo} onChange={(e) => set("documentNo", e.target.value)} />
                                     </Row>
@@ -775,7 +836,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                             <SearchSelect value={f.accountCode} onChange={(v) => set("accountCode", v)} options={debitOpts} aria-label="Accounts" />
                                         </div>
                                     </Row>
-                                    <Row label="Attachment" as="div">
+                                    {!isOrder && <Row label="Attachment" as="div">
                                         <div className="inv-file">
                                             {!scan && (
                                                 <button type="button" className="inv-file-btn" onClick={() => fileRef.current?.click()}>Browse</button>
@@ -804,7 +865,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                             </button>
                                             <input ref={fileRef} type="file" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onChange={onPickFile} />
                                         </div>
-                                    </Row>
+                                    </Row>}
                                 </div>
                             </div>
 
@@ -931,6 +992,33 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 <button className="btn btn-primary" onClick={save} disabled={saving || checking}>{saving || checking ? "SAVING…" : "SAVE"}</button>
                             )}
                         </>
+                    ) : isOrder ? (
+                        /* sales order */
+                        <>
+                            <button
+                                className="btn btn-primary inv-actions-left"
+                                onClick={() => navigate(`${ORDER_PATH}/new`, navState)}
+                                disabled={!saved}
+                                title={saved ? "Start a new sales order" : "You're already on a new order"}
+                            >
+                                <Icon name="plus" size={16} /> Add New Order
+                            </button>
+                            <button className="btn" onClick={() => navigate(backTo)}>Close</button>
+                            <button className="btn btn-warning" disabled={!saved || locked || !!orderBusy} onClick={() => setConfirmOrderVoid(true)}>VOID</button>
+                            <button className="btn btn-info" onClick={() => window.print()}>PRINT</button>
+                            {linkedInvoice ? (
+                                <button className="btn btn-info" onClick={() => navigate(`/task/sales/${encodeURIComponent(linkedInvoice)}`, { state: { from: `${ORDER_PATH}/${encodeURIComponent(f.invoiceNo)}` } })}>
+                                    OPEN {linkedInvoice}
+                                </button>
+                            ) : (
+                                <button className="btn btn-primary" disabled={!saved || locked || !!orderBusy || saving}
+                                    title={saved ? "Make a sales invoice from this order" : "Save the order first"}
+                                    onClick={() => setConfirmCreateInvoice(true)}>
+                                    {orderBusy === "invoice" ? "CREATING…" : "CREATE INVOICE"}
+                                </button>
+                            )}
+                            <button className="btn btn-primary" disabled={locked || saving || checking} onClick={save}>{saving || checking ? "SAVING…" : "SAVE"}</button>
+                        </>
                     ) : (
                         /* normal sales invoice */
                         <>
@@ -970,6 +1058,24 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
             </div>
 
             {/* ---------- dialogs ---------- */}
+            {confirmOrderVoid && (
+                <ConfirmDialog
+                    title={`Void ${f.invoiceNo}?`}
+                    message="The sales order can't be edited or invoiced after this."
+                    confirmLabel="Void"
+                    onCancel={() => setConfirmOrderVoid(false)}
+                    onConfirm={voidOrder}
+                />
+            )}
+            {confirmCreateInvoice && (
+                <ConfirmDialog
+                    title={`Create an invoice from ${f.invoiceNo}?`}
+                    message={`A sales invoice is saved with the same customer, items and amounts (total ${num4(calc.grandTotal)}). The order then can't be edited.`}
+                    confirmLabel="Create Invoice"
+                    onCancel={() => setConfirmCreateInvoice(false)}
+                    onConfirm={createInvoice}
+                />
+            )}
             {showAudit && (
                 <AuditModal
                     invoiceId={f.id}
@@ -1059,7 +1165,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
             )}
             {review && (
                 <ReviewPanel
-                    title={f.documentNo ? `#${f.documentNo}` : "New invoice"}
+                    title={f.documentNo ? `#${f.documentNo}` : isOrder ? "New sales order" : "New invoice"}
                     f={f}
                     calc={calc}
                     lookups={lookups}
