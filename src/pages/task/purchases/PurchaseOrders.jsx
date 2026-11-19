@@ -8,7 +8,7 @@ import { useToast } from "../../../components/Toast";
 import { PURCHASE_TABS } from "../../../components/routesMeta";
 import { useAuth, apiFetch } from "../../../context/AuthContext";
 import { usePeriod } from "../../../context/PeriodContext";
-import { TicketViewModal } from "./PurchaseOrderDetail";
+import { TicketViewModal, PoLogsModal } from "./PurchaseOrderDetail";
 import Icon from "../../../components/Icons";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const TABLE_HEIGHT = "calc(100vh - 375px)";
@@ -27,13 +27,14 @@ const fmt4 = (n) => Number(n || 0).toLocaleString("en-PH", { minimumFractionDigi
 const fmt2 = (n) =>
     Number(n) ? Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
 
+// one colour per PO status
 const statusTone = (s) => {
     const v = String(s).toUpperCase();
-    if (v.includes("UNPAID")) return "red";
-    if (v.includes("PARTIAL")) return "orange";
-    if (v.includes("PAID")) return "green";
-    if (v.includes("VOID") || v.includes("CANCEL")) return "gray";
-    return "blue";
+    if (v.includes("VOID") || v.includes("CANCEL")) return "gray";                                   // VOID / CANCELLED
+    if (v.includes("UNPAID") || v.includes("REJECT") || v.includes("DECLIN")) return "red";            // UNPAID / REJECTED
+    if (v.includes("PARTIAL")) return "orange";                                                       // PARTIALLY RECEIVED / PAID
+    if (/RECEIVED|COMPLETE|CLOSED|SERVED|DELIVERED|PAID|APPROVED/.test(v)) return "green";            // RECEIVED / COMPLETED / CLOSED / PAID
+    return "blue";                                                                                     // OPEN / NEW / PENDING / ORDERED
 };
 
 const auditTone = (s) => {
@@ -60,6 +61,7 @@ export default function PurchaseOrders() {
     const [showMonth, setShowMonth] = useState(false);
     const [journalFor, setJournalFor] = useState(null);
     const [ticketFor, setTicketFor] = useState(null);
+    const [logsFor, setLogsFor] = useState(null);
     const fromMonth = from.slice(0, 7);
     const toMonth = to.slice(0, 7);
 
@@ -122,6 +124,7 @@ export default function PurchaseOrders() {
     const rowActions = (r) => [
         { label: "Journal", onClick: () => setJournalFor(r.invoice_no) },
         { label: "Purchase Order", onClick: () => openInvoice(r) },
+        { label: "Logs", onClick: () => setLogsFor(r.invoice_no) },
     ];
 
     // "Update Declared Month" only when something is ticked
@@ -167,6 +170,7 @@ export default function PurchaseOrders() {
 
             {journalFor && <JournalModal invoiceNo={journalFor} onClose={() => setJournalFor(null)} />}
             {ticketFor && <TicketViewModal ticketNo={ticketFor} onClose={() => setTicketFor(null)} />}
+            {logsFor && <PoLogsModal poNumber={logsFor} onClose={() => setLogsFor(null)} />}
         </>
     );
 }

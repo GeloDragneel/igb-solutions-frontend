@@ -74,7 +74,6 @@ export default function Inventory() {
     { key: "location", label: "Location" },
     { key: "po", label: "PO / Invoice", render: (r) => <span className="mono">{r.po || "—"}</span> },
     { key: "total", label: "Total", align: "right", value: (r) => Number(r.total), render: (r) => <span className="mono">{fmt4(r.total)}</span> },
-    { key: "status", label: "Status", render: (r) => <Badge tone={statusTone(r.status)}>{r.status}</Badge> },
   ];
 
   const rowActions = (r) => [

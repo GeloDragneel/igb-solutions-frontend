@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Modal from "../../components/Modal";
 import { useToast } from "../../components/Toast";
-import { apiBlob, apiFetch } from "../../context/AuthContext";
+import { apiBlob, apiFetch, useAuth } from "../../context/AuthContext";
 import "./Ticket.css";
 
 const STATUS = { 0: "Pending", 1: "Approved", 2: "Declined" };
@@ -26,8 +26,15 @@ const pageNums = (page, pages) => {
     return out;
 };
 
-export default function AdminTicket() {
+// Admin → Ticket (FEMS side): the same page, only the tickets of the client account selected at the top
+export function ClientTicket() {
+    const { user } = useAuth();
+    return <AdminTicket key={user?.caid ?? 0} clientOnly />;
+}
+
+export default function AdminTicket({ clientOnly = false }) {
     const notify = useToast();
+    const scope = clientOnly ? "scope=client" : "";
     const [rows, setRows] = useState([]);         // this page only (paged on the server)
     const [total, setTotal] = useState(0);
     const [counts, setCounts] = useState({ all: 0, 0: 0, 1: 0, 2: 0 });
@@ -45,6 +52,7 @@ export default function AdminTicket() {
         setLoading(true);
         try {
             const p = new URLSearchParams({ status: tab, page: page + 1, per });
+            if (clientOnly) p.set("scope", "client");
             if (q) p.set("q", q);
             const res = await apiFetch(`/admin/tickets?${p}`);
             setRows(res.rows || []);
@@ -56,7 +64,7 @@ export default function AdminTicket() {
         } finally {
             setLoading(false);
         }
-    }, [tab, q, page, per]); // eslint-disable-line react-hooks/exhaustive-deps -- notify may change every render
+    }, [tab, q, page, per, clientOnly]); // eslint-disable-line react-hooks/exhaustive-deps -- notify may change every render
     useEffect(() => { load(); }, [load]);
     // new search / tab / rows-per-page → back to page 1 (in the same render, so only one request is sent)
     useEffect(() => {
@@ -70,7 +78,7 @@ export default function AdminTicket() {
     const open = async (row) => {
         setView({ row, data: null, loading: true, side: "requested" });
         try {
-            const data = await apiFetch(`/admin/tickets/${encodeURIComponent(row.ticket_no)}`);
+            const data = await apiFetch(`/admin/tickets/${encodeURIComponent(row.ticket_no)}${scope ? `?${scope}` : ""}`);
             setView((v) => (v && v.row === row ? { ...v, data, loading: false } : v));
         } catch (e) {
             setView((v) => v && { ...v, loading: false, error: e.message || "Couldn't load the ticket." });
@@ -83,7 +91,7 @@ export default function AdminTicket() {
         const what = confirm;
         setBusy(true);
         try {
-            const res = await apiFetch(`/admin/tickets/${encodeURIComponent(view.row.ticket_no)}/${what}`, { method: "POST", body: "{}" });
+            const res = await apiFetch(`/admin/tickets/${encodeURIComponent(view.row.ticket_no)}/${what}${scope ? `?${scope}` : ""}`, { method: "POST", body: "{}" });
             notify(res.message || (what === "approve" ? "Ticket Successfully Approved" : "Ticket Successfully Declined"), "success");
             setConfirm(null);
             setView(null);

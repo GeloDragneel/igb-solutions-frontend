@@ -347,7 +347,27 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
     const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
     const setLine = (i, patch) => setF((x) => ({ ...x, lines: x.lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) }));
 
-    const locked = /VOID|CANCEL/i.test(f.status) || !!pendingTicket || (scanMode && scanStatus !== 0 && scanStatus !== 4);
+    const locked = /VOID|CANCEL|CLOSED/i.test(f.status) || !!pendingTicket || (scanMode && scanStatus !== 0 && scanStatus !== 4);
+    // partly received (some, not all) → FORCE CLOSE: the rest won't be received
+    const receipt = data?.receipt || null;
+    const canForceClose = saved && !locked && (/PARTIAL/i.test(f.status) || (!!receipt && receipt.received > 0 && receipt.left > 0));
+    const [confirmClose, setConfirmClose] = useState(false);
+    const [showLogs, setShowLogs] = useState(false);
+    const [closing, setClosing] = useState(false);
+    const forceClose = async () => {
+        setClosing(true);
+        try {
+            const r = await apiFetch(`/purchase-orders/${f.id}/force-close`, { method: "POST" });
+            notify(r.message);
+            setConfirmClose(false);
+            onReload();
+        } catch (e) {
+            notify(e.message || "Couldn't force close the purchase order.", "error");
+            setConfirmClose(false);
+        } finally {
+            setClosing(false);
+        }
+    };
     const calc = invoiceCalc(f, lookups.atc);
 
     const itemsById = useMemo(() => Object.fromEntries(lookups.items.map((i) => [String(i.id), i])), [lookups.items]);
@@ -898,6 +918,13 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                         <>
                             <button className="btn" onClick={() => navigate(backTo)}>Close</button>
                             <button className="btn btn-warning" disabled={!saved || locked} onClick={() => setTicket({ ...buildBody(), action: "VOID" })}>VOID</button>
+                            {canForceClose && (
+                                <button className="btn btn-danger" onClick={() => setConfirmClose(true)} disabled={closing}
+                                    title={receipt?.received > 0 ? `${receipt.received} of ${receipt.ordered} received · ${receipt.left} left` : "Close this partly received PO"}>
+                                    {closing ? "CLOSING…" : "FORCE CLOSE"}
+                                </button>
+                            )}
+                            <button className="btn btn-info" onClick={() => setShowLogs(true)} disabled={!saved}>LOGS</button>
                             <button className="btn btn-info" onClick={addItem} disabled={locked || saving}>ADD ITEM</button>
                             <button className="btn btn-info" onClick={printPo} disabled={!saved || printing} title={saved ? "Print the purchase order" : "Save the purchase order first"}>{printing ? "PRINTING…" : "PRINT"}</button>
                             <button
@@ -915,6 +942,18 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
             </div>
 
             {/* ---------- dialogs ---------- */}
+            {showLogs && <PoLogsModal poNumber={f.invoiceNo} onClose={() => setShowLogs(false)} />}
+            {confirmClose && (
+                <ConfirmDialog
+                    title={`Force close ${f.invoiceNo}?`}
+                    message={receipt?.received > 0
+                        ? `${receipt.received} of ${receipt.ordered} received. The remaining ${receipt.left} will not be received anymore and the PO can't be edited.`
+                        : "What is left on this PO will not be received anymore and the PO can't be edited."}
+                    confirmLabel="Force Close"
+                    onCancel={() => setConfirmClose(false)}
+                    onConfirm={forceClose}
+                />
+            )}
             {pdf && (
                 <Modal
                     title={`Purchase Order · ${f.documentNo || f.invoiceNo}`}
@@ -2187,6 +2226,68 @@ function SendPoModal({ poNumber, vendorId, label, vendor, vendorEmail, pdf, onCl
                     )}
                 </div>
             )}
+        </Modal>
+    );
+}
+
+/* =========================================================
+   PO logs: Force Close history – PO qty vs received qty per item
+   ========================================================= */
+const q4 = (n) => (Number(n) || 0).toLocaleString("en-PH", { maximumFractionDigits: 4 });
+const when = (d) => {
+    if (!d) return "—";
+    const x = new Date(String(d).replace(" ", "T"));
+    return isNaN(x) ? d : x.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
+};
+export function PoLogsModal({ poNumber, onClose }) {
+    const [rows, setRows] = useState(null);
+    const [error, setError] = useState("");
+    useEffect(() => {
+        apiFetch(`/purchase-orders/${encodeURIComponent(poNumber)}/logs`)
+            .then((r) => setRows(r.rows || []))
+            .catch((e) => setError(e.message || "Couldn't load the logs."));
+    }, [poNumber]);
+    const sum = (k) => (rows || []).reduce((n, r) => n + (Number(r[k]) || 0), 0);
+    return (
+        <Modal title={`Logs · ${poNumber}`} onClose={onClose} size="lg" footer={<button className="btn" onClick={onClose}>Close</button>}>
+            {error && <div className="alert-error" role="alert">{error}</div>}
+            <div className="table-scroll">
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th><th>Item</th>
+                            <th className="ta-right">PO Qty</th><th className="ta-right">Received Qty</th><th className="ta-right">Closed Qty</th>
+                            <th>Status</th><th>By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {!rows && !error && <tr><td colSpan={7} className="empty">Loading…</td></tr>}
+                        {rows && !rows.length && <tr><td colSpan={7} className="empty">No logs. Logs are saved when the PO is force closed.</td></tr>}
+                        {(rows || []).map((r) => (
+                            <tr key={r.id}>
+                                <td className="nowrap">{when(r.date)}</td>
+                                <td>{r.item}</td>
+                                <td className="ta-right mono">{q4(r.ordered)}</td>
+                                <td className="ta-right mono">{q4(r.received)}</td>
+                                <td className="ta-right mono" style={{ color: r.closed > 0 ? "var(--red)" : undefined, fontWeight: r.closed > 0 ? 700 : undefined }}>{q4(r.closed)}</td>
+                                <td className="nowrap">{r.old_status} → {r.new_status}</td>
+                                <td>{r.closed_by || "—"}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    {rows && rows.length > 1 && (
+                        <tfoot>
+                            <tr>
+                                <th colSpan={2}>Total</th>
+                                <th className="ta-right mono">{q4(sum("ordered"))}</th>
+                                <th className="ta-right mono">{q4(sum("received"))}</th>
+                                <th className="ta-right mono">{q4(sum("closed"))}</th>
+                                <th colSpan={2} />
+                            </tr>
+                        </tfoot>
+                    )}
+                </table>
+            </div>
         </Modal>
     );
 }

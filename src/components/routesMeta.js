@@ -90,6 +90,7 @@ export const NAV = [
       { to: "/settings", label: "Settings", icon: "settings" },
       { to: "/employees", label: "Employee", icon: "users" },
       { to: "/team", label: "Team", icon: "users" },
+      { to: "/ticket", label: "Ticket", icon: "users" },
     ],
   },
   {
@@ -215,6 +216,7 @@ export const ROUTE_META = Object.fromEntries(
 // Tabs inside a page (each tab is its own page/route)
 export const SALES_TABS = [
   { to: "/task/sales", label: "Invoice", end: true },
+  { to: "/task/sales-orders", label: "Sales Order" },
   // { to: "/task/sales/pos", label: "POS" },
   { to: "/task/sales/scanned-receipts", label: "Scanned Receipts" },
   { to: "/task/sales/invalid", label: "Invalid - Partially Invalid - Cancel" },

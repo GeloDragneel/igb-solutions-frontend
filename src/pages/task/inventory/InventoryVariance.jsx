@@ -181,12 +181,14 @@ function AdjustmentModal({ initial, lookups, onClose, onSaved }) {
         >
             {error && <div className="alert-error" role="alert">{error}</div>}
             <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                <Field label="Date"><input type="date" className="input" value={f.transaction_date} onChange={(e) => set("transaction_date", e.target.value)} /></Field>
-                <Field label="Declared Month"><input type="month" className="input" value={f.declared_month} onChange={(e) => set("declared_month", e.target.value)} /></Field>
-                <div className="field">
+                <div className="field" style={{ gridColumn: "1 / -1" }}>
                     <span className="field-label">Item</span>
                     <SearchSelect value={String(f.item_id || "")} onChange={(v) => set("item_id", v)} options={itemOpts} searchPlaceholder="Search item..." aria-label="Item" />
                 </div>
+                <Field label="Date">
+                    <input type="date" className="input" value={f.transaction_date}
+                        onChange={(e) => setF((x) => ({ ...x, transaction_date: e.target.value, declared_month: e.target.value.slice(0, 7) }))} />
+                </Field>
                 <Field label="Qty (use minus to remove)">
                     <input className="input ta-right" inputMode="decimal" value={f.qty} onChange={(e) => set("qty", e.target.value.replace(/[^\d.-]/g, ""))} placeholder="e.g. 5 or -2" />
                 </Field>

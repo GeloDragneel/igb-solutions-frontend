@@ -13,6 +13,7 @@ import ComingSoon from "./pages/ComingSoon";
 
 import Sales from "./pages/task/Sales";
 import SalesDetail from "./pages/task/sales/SalesDetail";
+import SalesOrders from "./pages/task/SalesOrders";
 import ScannedReceipts from "./pages/task/sales/ScannedReceipts";
 import InvalidSales from "./pages/task/sales/InvalidSales";
 import ForCollection from "./pages/task/sales/ForCollection";
@@ -120,6 +121,7 @@ import RevertedSummary from "./pages/reports/RevertedSummary";
 import BirReturnSummary from "./pages/reports/BirReturnSummary";
 
 import Ticket from "./pages/administration/Ticket";
+import ClientTicket from "./pages/ClientTicket";
 import DeclaredMonthSettings from "./pages/administration/DeclaredMonthSettings";
 import UserLogs from "./pages/administration/UserLogs";
 import UserAccess from "./pages/administration/UserAccess";
@@ -156,6 +158,8 @@ const PAGES = {
 
   // Sales tabs
   "/task/sales": Sales,
+  "/task/sales-orders": SalesOrders,
+  "/task/sales-orders/:id": SalesDetail,          // the invoice form in Sales Order mode
   "/task/sales/pos": SalesComingSoon,
   "/task/sales/scanned-receipts": ScannedReceipts,
   "/task/sales/invalid": InvalidSales,
@@ -223,6 +227,7 @@ const PAGES = {
   "/other/inventory/adjustment-journal": InventoryReports,
 
   "/team": Team,
+  "/ticket": ClientTicket,                        // Admin → Ticket: tickets of the selected client only
   "/employees": BranchEmployees,
   "/settings": Settings,
   "/calendar": Calendar,

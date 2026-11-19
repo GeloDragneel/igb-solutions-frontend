@@ -193,7 +193,7 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
     if (!f.vendorId) e.vendorId = "Vendor is required.";
     if (!f.locationId) e.locationId = "Location is required.";
     if (!f.date) e.date = "Date is required.";
-    if (f.declaredMonth && (lookups.locked_months || []).includes(f.declaredMonth)) e.declaredMonth = "Declared Month is disabled.";
+    if (f.date && (lookups.locked_months || []).includes(f.date.slice(0, 7))) e.date = "The declared month of this date is disabled.";
     const used = f.lines.filter((l) => l.itemId);
     if (!used.length) e.lines = "Please add item.";
     used.forEach((l, i) => {
@@ -206,7 +206,7 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
 
   const body = () => ({
     vendor_id: Number(f.vendorId), grn_date: f.date, location_id: Number(f.locationId), ref_data: f.refData || null,
-    declared_month: f.declaredMonth || null,
+    declared_month: f.date ? f.date.slice(0, 7) : null,     // declared month = month of the Date (field hidden)
     atc_vt_id: f.atcVtId ? Number(f.atcVtId) : null, atc_it_id: f.atcItId ? Number(f.atcItId) : null,
     vt_month: f.atcVtId && f.vtMonth ? f.vtMonth : null, it_month: f.atcItId && f.itMonth ? f.itMonth : null,
     sub_total: t.subTotal, "2307_vt": t.vt, "2307_it": t.it, discount_amount: t.discount, total: t.total, grand_total: t.grandTotal,
@@ -285,13 +285,6 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                   </Row>
                   <Row label=""><input className="input" readOnly value={vendor?.address || ""} aria-label="Address" /></Row>
                   <Row label=""><input className="input" readOnly value={vendor?.city_country || ""} aria-label="City / Country" /></Row>
-                  <Row label="Apply PO#">
-                    {saved || !f.vendorId ? (
-                      <input className="input" readOnly value={f.refData || (f.vendorId ? "" : "Select a vendor first")} aria-label="Apply PO#" />
-                    ) : (
-                      <SearchSelect value={f.refData} onChange={applySource} options={sourceOpts} searchPlaceholder="Search PO or invoice..." aria-label="Apply PO#" />
-                    )}
-                  </Row>
                 </div>
 
                 <div className="inv-col">
@@ -303,14 +296,18 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                 </div>
 
                 <div className="inv-col">
+                  <Row label="Apply PO#">
+                    {saved || !f.vendorId ? (
+                      <input className="input" readOnly value={f.refData || (f.vendorId ? "" : "Select a vendor first")} aria-label="Apply PO#" />
+                    ) : (
+                      <SearchSelect value={f.refData} onChange={applySource} options={sourceOpts} searchPlaceholder="Search PO or invoice..." aria-label="Apply PO#" />
+                    )}
+                  </Row>
                   <Row label="Location" required error={errors.locationId}>
                     <div className={err("locationId")}>
                       <SearchSelect value={f.locationId} onChange={(v) => set("locationId", v)} options={locationOpts}
                         onAddNew={(typed) => setNewLocation(typed)} addNewLabel="New Location" aria-label="Location" />
                     </div>
-                  </Row>
-                  <Row label="Declared Month" error={errors.declaredMonth}>
-                    <input type="month" className={`input ${err("declaredMonth")}`} value={f.declaredMonth} onChange={(e) => set("declaredMonth", e.target.value)} />
                   </Row>
                   <Row label="Attachment" as="div">
                     <div className="inv-file">
@@ -331,16 +328,29 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                 <div className="xl-wrap">
                   <div className="xl-scroll">
                     <table className="xl">
+                      {/* same widths as Sales (the Discount column's share goes to Item / Accounts) */}
+                      <colgroup>
+                        <col style={{ width: "3%" }} />
+                        <col style={{ width: "17%" }} />
+                        <col style={{ width: "19%" }} />
+                        <col style={{ width: "5%" }} />
+                        <col style={{ width: "8%" }} />
+                        <col style={{ width: "8%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "7.5%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "3.5%" }} />
+                      </colgroup>
                       <thead>
                         <tr>
                           <th className="xl-rownum">#</th>
-                          <th style={{ minWidth: 170 }}>Item <span className="required-mark">*</span></th>
-                          <th style={{ minWidth: 190 }}>Accounts</th>
-                          <th style={{ minWidth: 110 }}>VAT</th>
+                          <th>Item <span className="required-mark">*</span></th>
+                          <th>Accounts</th>
                           <th className="ta-right">Qty</th>
                           <th className="ta-right">Price</th>
                           <th className="ta-right">Total</th>
-                          <th className="ta-right">Discount</th>
                           <th className="ta-right">Input VAT</th>
                           <th className="ta-right">Net of VAT</th>
                           <th className="ta-right">VAT Exempt</th>
@@ -367,14 +377,10 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                                 <SearchSelect variant="cell" value={l.accountCode} onChange={(v) => setLine(r, { accountCode: v })} options={accountOpts}
                                   placeholder="Select account" searchPlaceholder="Search account..." aria-label={`Account row ${r + 1}`} />
                               </td>
-                              <td>
-                                <SearchSelect variant="cell" value={l.vatType} onChange={(v) => setLine(r, { vatType: v })} options={VAT_OPTS} aria-label={`VAT row ${r + 1}`} />
-                              </td>
                               {["qty", "price"].map((k) => (
                                 <td key={k}><input className="xl-input num" inputMode="decimal" value={l[k]} onChange={(e) => setLine(r, { [k]: cleanNum(e.target.value) })} aria-label={`${k} row ${r + 1}`} /></td>
                               ))}
                               <td className="xl-ro">{num4(c.total)}</td>
-                              <td><input className="xl-input num" inputMode="decimal" value={l.discount} onChange={(e) => setLine(r, { discount: cleanNum(e.target.value) })} aria-label={`Discount row ${r + 1}`} /></td>
                               <td className="xl-ro">{num4(c.inputVat)}</td>
                               <td className="xl-ro">{num4(c.netOfVat)}</td>
                               <td className="xl-ro">{num4(c.vatExempt)}</td>
@@ -390,11 +396,10 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                           <td className="xl-rownum">
                             <button type="button" className="icon-btn ghost" onClick={() => setF((x) => ({ ...x, lines: [...x.lines, blank()] }))} aria-label="Add row" title="Add row"><Icon name="plus" size={15} /></button>
                           </td>
-                          <td colSpan={3}>{f.lines.filter((l) => l.itemId).length} item(s)</td>
+                          <td colSpan={2}>{f.lines.filter((l) => l.itemId).length} item(s)</td>
                           <td className="ta-right">{f.lines.reduce((n, l) => n + (Number(l.qty) || 0), 0)}</td>
                           <td />
                           {["total"].map((k) => <td key={k} className="ta-right">{num4(t.calcs.reduce((n, c) => n + c[k], 0))}</td>)}
-                          <td className="ta-right">{num4(t.discount)}</td>
                           {["inputVat", "netOfVat", "vatExempt", "nonVat", "zeroRated"].map((k) => <td key={k} className="ta-right">{num4(t.calcs.reduce((n, c) => n + c[k], 0))}</td>)}
                           <td />
                         </tr>
@@ -407,15 +412,7 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
 
               {/* ---------- summary (old footer rows) ---------- */}
               <div className="inv-summary">
-                <SumRow label="Sub Total"><input className="input ta-right" readOnly value={num4(t.subTotal)} /></SumRow>
-                <SumRow label="ATC (VT/PT)"><SearchSelect value={f.atcVtId} onChange={(v) => set("atcVtId", v)} options={atcOpts} aria-label="ATC (VT/PT)" /></SumRow>
-                <SumRow label="2307 (VT/PT)"><input className="input ta-right" readOnly value={num4(t.vt)} /></SumRow>
-                <SumRow label="2307 (VT/PT) Declared Month"><input type="month" className="input" value={f.vtMonth} onChange={(e) => set("vtMonth", e.target.value)} disabled={!f.atcVtId} /></SumRow>
-                <SumRow label="ATC (IT)"><SearchSelect value={f.atcItId} onChange={(v) => set("atcItId", v)} options={atcOpts} aria-label="ATC (IT)" /></SumRow>
-                <SumRow label="2307 (IT)"><input className="input ta-right" readOnly value={num4(t.it)} /></SumRow>
-                <SumRow label="2307 (IT) Declared Month"><input type="month" className="input" value={f.itMonth} onChange={(e) => set("itMonth", e.target.value)} disabled={!f.atcItId} /></SumRow>
-                <SumRow label="Discount Amt"><input className="input ta-right" readOnly value={num4(t.discount)} /></SumRow>
-                <SumRow label="Input VAT"><input className="input ta-right" readOnly value={num4(t.inputVat)} /></SumRow>
+                {/* Sub Total · ATC / 2307 · Discount · Input VAT are hidden (still computed and saved) */}
                 <SumRow label="Total"><input className="input ta-right inv-total" readOnly value={num4(t.total)} /></SumRow>
               </div>
             </fieldset>
