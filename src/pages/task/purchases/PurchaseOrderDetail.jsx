@@ -289,6 +289,10 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                 atcItMonth: inv.it_month_ym || "",
                 discountTypeId: inv.discount_type_id ? String(inv.discount_type_id) : "",
                 discountAmt: Number(inv.discount_amount) || 0,
+                shippingTermId: inv.shipping_term_id ? String(inv.shipping_term_id) : "",
+                paymentTermId: inv.payment_term_id ? String(inv.payment_term_id) : "",
+                shipToId: inv.ship_to_id ? String(inv.ship_to_id) : "",
+                deliveryMethodId: inv.delivery_method_id ? String(inv.delivery_method_id) : "",
                 lines: data.lines.length
                     ? data.lines.map((l) => ({
                         itemId: l.item_id ? String(l.item_id) : "",
@@ -320,6 +324,7 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                 atcItId: "", atcItMonth: "",
                 discountTypeId: "",
                 discountAmt: 0,
+                shippingTermId: "", paymentTermId: "", shipToId: "", deliveryMethodId: "",
                 lines: [scan ? scanLine() : blankLine()],
             }
     );
@@ -369,6 +374,18 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
         }
     };
     const calc = invoiceCalc(f, lookups.atc);
+
+    /* ---------- Shipping Terms · Payment Terms · Ship To · Delivery Method (per client, + Add New) ---------- */
+    const [terms, setTerms] = useState({ shipping_terms: [], payment_terms: [], ship_to: [], delivery_methods: [] });
+    const [newTerm, setNewTerm] = useState(null);   // { kind, field, label, name }
+    useEffect(() => {
+        apiFetch("/purchase-orders/terms").then((r) => setTerms((t) => ({ ...t, ...r }))).catch(() => { });
+    }, []);
+    const termOpts = (kind) => [{ value: "", label: "— None —" }, ...(terms[kind] || []).map((x) => ({ value: String(x.id), label: x.name }))];
+    const termSelect = (kind, field, label) => (
+        <SearchSelect value={f[field]} onChange={(v) => set(field, v)} options={termOpts(kind)} aria-label={label}
+            onAddNew={(typed) => setNewTerm({ kind, field, label, name: typed || "" })} addNewLabel={`New ${label}`} />
+    );
 
     const itemsById = useMemo(() => Object.fromEntries(lookups.items.map((i) => [String(i.id), i])), [lookups.items]);
     const salesAccounts = lookups.sales_accounts || [];
@@ -525,6 +542,10 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
         vt_month: f.atcVtId && f.atcVtMonth ? f.atcVtMonth : null,
         it_month: f.atcItId && f.atcItMonth ? f.atcItMonth : null,
         discount_type_id: f.discountTypeId ? Number(f.discountTypeId) : null,
+        shipping_term_id: f.shippingTermId ? Number(f.shippingTermId) : null,
+        payment_term_id: f.paymentTermId ? Number(f.paymentTermId) : null,
+        ship_to_id: f.shipToId ? Number(f.shipToId) : null,
+        delivery_method_id: f.deliveryMethodId ? Number(f.deliveryMethodId) : null,
         sub_total: calc.subTotal,
         "2307_vt": calc.wtaxVT,
         "2307_it": calc.wtaxIT,
@@ -715,9 +736,10 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                         />
                                     </Row>
                                     <Row label=""><input className="input" readOnly value={cust?.address || ""} aria-label="Address" /></Row>
-                                    <Row label=""><input className="input" readOnly value={cust?.city_country || ""} aria-label="City / Country" /></Row>
+                                    {/* City / Country and Branch Code: hidden */}
                                     <Row label="TIN"><input className="input" readOnly value={cust?.tin || ""} /></Row>
-                                    <Row label="Branch Code"><input className="input" readOnly value={cust?.branch_code || ""} /></Row>
+                                    <Row label="Payment Terms">{termSelect("payment_terms", "paymentTermId", "Payment Terms")}</Row>
+                                    <Row label="Shipping Terms">{termSelect("shipping_terms", "shippingTermId", "Shipping Terms")}</Row>
                                 </div>
 
                                 <div className="inv-col">
@@ -739,15 +761,12 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                                 </div>
 
                                 <div className="inv-col">
-                                    <Row label="Generated No">
-                                        <input className="input" readOnly value={f.invoiceNo || "(assigned when saved)"} />
-                                    </Row>
+                                    {/* Generated No and Document Type: hidden (still saved) */}
                                     <Row label="PO Number" required error={errors.documentNo}>
                                         <input className={`input ${err("documentNo")}`} maxLength={100} value={f.documentNo} onChange={(e) => set("documentNo", e.target.value)} />
                                     </Row>
-                                    <Row label="Document Type">
-                                        <SearchSelect value={f.documentTypeId} onChange={(v) => set("documentTypeId", v)} options={docOpts} aria-label="Document Type" />
-                                    </Row>
+                                    <Row label="Ship To">{termSelect("ship_to", "shipToId", "Ship To")}</Row>
+                                    <Row label="Delivery Method">{termSelect("delivery_methods", "deliveryMethodId", "Delivery Method")}</Row>
                                     <Row label="Accounts" required error={errors.accountCode}>
                                         <div className={err("accountCode")}>
                                             <SearchSelect value={f.accountCode} onChange={(v) => set("accountCode", v)} options={debitOpts} aria-label="Accounts" />
@@ -998,6 +1017,16 @@ function InvoiceForm({ lookups, setLookups, data, onReload }) {
                         onReload();
                     }}
                 />
+            )}
+
+            {newTerm && (
+                <TermModal term={newTerm} onClose={() => setNewTerm(null)}
+                    onSaved={(row) => {
+                        setTerms((t) => ({ ...t, [newTerm.kind]: [...(t[newTerm.kind] || []).filter((x) => x.id !== row.id), row].sort((a, b) => a.name.localeCompare(b.name)) }));
+                        set(newTerm.field, String(row.id));
+                        notify(`${newTerm.label} added`);
+                        setNewTerm(null);
+                    }} />
             )}
 
             {newCustomer !== null && (
@@ -1592,6 +1621,34 @@ function InvoiceSkeleton() {
 /* =========================================================
    Small layout helpers
    ========================================================= */
+/* + Add New: Shipping Terms · Payment Terms · Ship To · Delivery Method */
+function TermModal({ term, onClose, onSaved }) {
+    const [name, setName] = useState(term.name || "");
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+    const submit = async () => {
+        if (!name.trim()) return setError(`${term.label} is required.`);
+        setSaving(true);
+        setError("");
+        try {
+            onSaved(await apiFetch(`/purchase-orders/terms/${term.kind}`, { method: "POST", body: JSON.stringify({ name: name.trim() }) }));
+        } catch (e) {
+            setError(e.message || "Couldn't save.");
+            setSaving(false);
+        }
+    };
+    return (
+        <Modal title={`New ${term.label}`} onClose={() => !saving && onClose()} size="sm"
+            footer={<><button className="btn" onClick={onClose} disabled={saving}>Close</button>
+                <button className="btn btn-primary" onClick={submit} disabled={saving}>{saving ? "Saving…" : "Save"}</button></>}>
+            {error && <div className="alert-error" role="alert">{error}</div>}
+            <Field label={term.label}>
+                <input className="input" value={name} maxLength={150} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+            </Field>
+        </Modal>
+    );
+}
+
 function Row({ label, error, required = false, children, as = "label" }) {
     const Tag = as;
     return (
@@ -2246,6 +2303,7 @@ export function PoLogsModal({ poNumber, onClose }) {
     const [rows, setRows] = useState(null);
     const [error, setError] = useState("");
     useEffect(() => {
+        WWW
         apiFetch(`/purchase-orders/${encodeURIComponent(poNumber)}/logs`)
             .then((r) => setRows(r.rows || []))
             .catch((e) => setError(e.message || "Couldn't load the logs."));

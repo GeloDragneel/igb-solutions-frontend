@@ -1,5 +1,5 @@
 // Task → Inventory → Receive Inventory form (old modal_ReceiveInventory; same layout as SalesDetail.jsx)
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../../../components/Toast";
 import Icon from "../../../components/Icons";
@@ -8,6 +8,10 @@ import ConfirmDialog from "../../../components/ConfirmDialog";
 import SearchSelect from "../../../components/SearchSelect";
 import { apiFetch, apiBlob, apiUpload, useAuth } from "../../../context/AuthContext";
 import { INVENTORY_PATH, RECEIVE_DETAIL_PATH } from "./inventoryMeta";
+import { ContactForm } from "../../setup/Contacts";
+import { ProductForm } from "../../setup/Product";
+import { AccountForm } from "../../setup/ChartOfAccounts";
+import { ACCOUNT_TYPES } from "../../../data/sampleData";
 
 const today = () => new Date().toISOString().slice(0, 10);
 // Task → Inventory → Receive Inventory form (old modal_ReceiveInventory; same layout as SalesDetail.jsx)
@@ -144,6 +148,10 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
   const [saving, setSaving] = useState(false);
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [newLocation, setNewLocation] = useState(null);
+  const [newVendor, setNewVendor] = useState(null);     // typed name
+  const [newItem, setNewItem] = useState(null);         // { row, name }
+  const [newAccount, setNewAccount] = useState(null);   // { row, name }
+  const [coa, setCoa] = useState(null);                 // /accounts – full chart (types, parents) for the New Account popup
   const [pendingFile, setPendingFile] = useState(null);
   const fileRef = useRef(null);
 
@@ -186,6 +194,39 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
     } catch (e) {
       notify(e.message || "Couldn't load the PO.", "error");
     }
+  };
+
+  /* ---------- + New Account (same popup as Setup → Charts of Account) ---------- */
+  const coaTree = useMemo(() => {
+    const list = coa || [];
+    const byCode = Object.fromEntries(list.map((a) => [a.code, a]));
+    const kids = {};
+    list.forEach((a) => { if (a.parent && byCode[a.parent]) (kids[a.parent] ??= []).push(a); });
+    const descendants = (code) => {
+      const out = [];
+      const walk = (c) => (kids[c] || []).forEach((k) => { out.push(k.code); walk(k.code); });
+      walk(code);
+      return out;
+    };
+    const typeOptions = [...new Set([...(ACCOUNT_TYPES || []), ...list.map((a) => a.type).filter(Boolean)])];
+    return { byCode, childrenOf: (c) => kids[c] || [], descendants, typeOptions };
+  }, [coa]);
+  const openNewAccount = async (row, typed) => {
+    try {
+      const list = coa || await apiFetch("/accounts");
+      setCoa(list);
+      setNewAccount({ row, name: typed || "" });
+    } catch (e) {
+      notify(e.message || "Couldn't load the chart of accounts.", "error");
+    }
+  };
+  const saveNewAccount = async (acc) => {
+    const res = await apiFetch("/accounts", { method: "POST", body: JSON.stringify(acc) });
+    setCoa((list) => [...(list || []), { ...acc, isGroup: false }]);
+    setLookups((lk) => ({ ...lk, accounts: [...lk.accounts, { account_code: acc.code, account_name: acc.name }] }));
+    setLine(newAccount.row, { accountCode: acc.code });
+    notify(res.message || `${acc.code} – ${acc.name} added`);
+    setNewAccount(null);
   };
 
   /* ---------- options ---------- */
@@ -290,7 +331,8 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                       <input className="input" readOnly value={vendor?.name || ""} aria-label="Vendor" />
                     ) : (
                       <SearchSelect value={f.vendorId} onChange={(v) => setF((x) => ({ ...x, vendorId: v, refData: "" }))} options={vendorOpts}
-                        searchPlaceholder="Search vendor..." aria-label="Vendor" />
+                        searchPlaceholder="Search vendor..." aria-label="Vendor"
+                        onAddNew={(typed) => setNewVendor(typed)} addNewLabel="New Vendor" />
                     )}
                   </Row>
                   <Row label=""><input className="input" readOnly value={vendor?.address || ""} aria-label="Address" /></Row>
@@ -380,12 +422,14 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
                                   <span className="xl-ro" style={{ display: "block", textAlign: "left" }}>{l.itemLabel || l.itemId}</span>
                                 ) : (
                                   <SearchSelect variant="cell" value={l.itemId} onChange={(v) => setLine(r, { itemId: v })} options={itemOpts}
-                                    placeholder="Select item" searchPlaceholder="Search item..." aria-label={`Item row ${r + 1}`} />
+                                    placeholder="Select item" searchPlaceholder="Search item..." aria-label={`Item row ${r + 1}`}
+                                    onAddNew={(typed) => setNewItem({ row: r, name: typed })} addNewLabel="New Product" />
                                 )}
                               </td>
                               <td>
                                 <SearchSelect variant="cell" value={l.accountCode} onChange={(v) => setLine(r, { accountCode: v })} options={accountOpts}
-                                  placeholder="Select account" searchPlaceholder="Search account..." aria-label={`Account row ${r + 1}`} />
+                                  placeholder="Select account" searchPlaceholder="Search account..." aria-label={`Account row ${r + 1}`}
+                                  onAddNew={(typed) => openNewAccount(r, typed)} addNewLabel="New Account" />
                               </td>
                               {["qty", "price"].map((k) => (
                                 <td key={k}><input className="xl-input num" inputMode="decimal" value={l[k]} onChange={(e) => setLine(r, { [k]: cleanNum(e.target.value) })} aria-label={`${k} row ${r + 1}`} /></td>
@@ -455,6 +499,52 @@ function ReceiveForm({ lookups, setLookups, data, onReload }) {
           confirmLabel="Void"
           onCancel={() => setConfirmVoid(false)}
           onConfirm={doVoid}
+        />
+      )}
+      {newVendor !== null && (
+        <ContactForm
+          userType="Vendor"
+          record={null}
+          defaultName={newVendor}
+          onClose={() => setNewVendor(null)}
+          onSave={async (body) => {
+            const res = await apiFetch("/contacts/vendor", { method: "POST", body: JSON.stringify(body) });
+            const v = { id: res.id, name: body.name, tin: body.tin, branch_code: body.branch_code, address: body.address, city_country: body.city_country };
+            setLookups((lk) => ({ ...lk, vendors: [...lk.vendors, v].sort((a, b) => String(a.name).localeCompare(String(b.name))) }));
+            setF((x) => ({ ...x, vendorId: String(res.id), refData: "" }));
+            notify(res.message || `${body.name} added`);
+            setNewVendor(null);
+          }}
+        />
+      )}
+      {newItem && (
+        <ProductForm
+          record={null}
+          defaultName={newItem.name}
+          accounts={lookups.accounts || []}
+          onClose={() => setNewItem(null)}
+          onSaved={(res, data) => {
+            if (res.image_error) notify(res.image_error, "error");
+            const first = data.units?.[0];
+            const item = { id: res.id, item_code: data.item_code, description: data.description, unit_type_id: first?.unit_type_id || null };
+            setLookups((lk) => ({ ...lk, items: [...lk.items, item] }));
+            setLine(newItem.row, { itemId: String(res.id), unitTypeId: item.unit_type_id });
+            notify(`${item.item_code} added`);
+            setNewItem(null);
+          }}
+        />
+      )}
+      {newAccount && coa && (
+        <AccountForm
+          defaultParent={coaTree.byCode[f.lines[newAccount.row]?.accountCode]?.parent || null}
+          defaultName={newAccount.name}
+          accounts={coa}
+          byCode={coaTree.byCode}
+          typeOptions={coaTree.typeOptions}
+          childrenOf={coaTree.childrenOf}
+          descendants={coaTree.descendants}
+          onClose={() => setNewAccount(null)}
+          onSave={saveNewAccount}
         />
       )}
       {newLocation !== null && (

@@ -421,7 +421,7 @@ export default function Home() {
             </section>
 
             {/* ---------- needs attention ---------- */}
-            {chips.some((c) => c.n > 0) && (
+            {/* {chips.some((c) => c.n > 0) && (
                 <section className="hd-chips">
                     {chips.filter((c) => c.n > 0).map((c) => (
                         <Link key={c.label} to={c.to} className={`hd-chip hd-c-${c.c}`}>
@@ -430,7 +430,7 @@ export default function Home() {
                         </Link>
                     ))}
                 </section>
-            )}
+            )} */}
 
             {/* ---------- chart + VAT ---------- */}
             <section className="hd-row hd-row-2">
