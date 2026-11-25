@@ -1,7 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
-import { RequireAuth } from "./context/AuthContext";
+import { RequireAuth, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
+import Website from "./pages/Website";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import { ALL_PAGES } from "./components/routesMeta";
@@ -285,9 +286,13 @@ const PAGES = {
 const EXTRA_ROUTES = Object.keys(PAGES).filter((to) => to !== "/pos" && !ALL_PAGES.some((p) => p.to === to));
 
 export default function App() {
+  const { user } = useAuth();
+  // not logged in: "/" shows the public website (its Login button goes to /login)
+  const guest = !user;
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {guest && <Route path="/" element={<Website />} />}
       {/* POS: full screen, no sidebar / top bar (opens in its own browser tab) */}
       <Route path="/pos" element={<RequireAuth><Pos /></RequireAuth>} />
       {/* Everything else needs a login */}
@@ -298,11 +303,11 @@ export default function App() {
           </RequireAuth>
         }
       >
-        {ALL_PAGES.filter(({ to }) => to !== "/pos").map(({ to }) => {
+        {ALL_PAGES.filter(({ to }) => to !== "/pos" && !(guest && to === "/")).map(({ to }) => {
           const Page = PAGES[to] || ComingSoon;
           return <Route key={to} path={to} element={<Page />} />;
         })}
-        {EXTRA_ROUTES.map((to) => {
+        {EXTRA_ROUTES.filter((to) => !(guest && to === "/")).map((to) => {
           const Page = PAGES[to];
           return <Route key={to} path={to} element={<Page />} />;
         })}
