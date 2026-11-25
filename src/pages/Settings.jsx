@@ -1002,7 +1002,7 @@ export default function Settings() {
                     {/* VALID IDS & PERMITS */}
                     {section === "ids" && (
                         <ValidIdsPanel ids={data.valid_ids} setIds={(v) => setData((d) => ({ ...d, valid_ids: v }))}
-                            institutions={INSTITUTIONS} docs={docs} setDocs={setDocs} notify={notify} />
+                            docs={docs} setDocs={setDocs} notify={notify} />
                     )}
 
                     {/* BUSINESS ACCOUNTS */}

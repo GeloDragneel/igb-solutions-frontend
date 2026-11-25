@@ -184,7 +184,7 @@ function DocUploader({ type, types, notify, onSaved, onRead, fields, applyLabel,
         setMsg("");
         try {
             setFile({ file_name: fl.name, obj: fl });
-            const r = await apiUpload("/settings/documents/scan", { doc_type: curType }, fl);
+            const r = await scanFile(fl, curType);
             setF({
                 label: "", doc_no: "", name_on_doc: "", date_registered: "", issued_at: "", expires_at: "",
                 ...Object.fromEntries(Object.entries(r.fields || {}).map(([k, v]) => [k, v ?? (Array.isArray(v) ? [] : "")]))
@@ -331,6 +331,53 @@ export function complianceFromTaxTypes(taxTypes, compliance) {
 }
 
 /* ---------- file of one Valid ID row (BIR, SSS, DENR, BOC, BOI …) ---------- */
+/* ---------- reading a scanned file ----------
+   the server reads PDFs with text (and scans when Tesseract is installed there);
+   otherwise the browser reads the scan itself (Tesseract.js) and the server picks the fields out of the text */
+function firstJpegOfPdf(bytes) {
+    const s = new TextDecoder("latin1").decode(bytes);
+    let at = 0;
+    for (; ;) {
+        const i = s.indexOf("/DCTDecode", at); if (i < 0) return null;
+        let st = s.indexOf("stream", i); if (st < 0) return null; st += 6;
+        if (s.substr(st, 2) === "\r\n") st += 2; else if (s[st] === "\n" || s[st] === "\r") st += 1;
+        const e = s.indexOf("endstream", st); if (e < 0) return null;
+        let end = e;
+        while (end > st && (s[end - 1] === "\n" || s[end - 1] === "\r")) end--;
+        if (bytes[st] === 0xff && bytes[st + 1] === 0xd8 && end - st > 20000) return new Blob([bytes.subarray(st, end)], { type: "image/jpeg" });   // skip logos
+        at = e;
+    }
+}
+
+let ocrWorker = null;
+export async function browserOcr(file) {
+    let image = file;
+    if (file.type === "application/pdf") {
+        image = firstJpegOfPdf(new Uint8Array(await file.arrayBuffer()));   // scanners keep page 1 as one JPEG
+        if (!image) return "";
+    }
+    const { createWorker } = await import("tesseract.js");
+    ocrWorker = ocrWorker || await createWorker("eng");
+    const r = await ocrWorker.recognize(image);
+    return r?.data?.text || "";
+}
+
+/** upload → fields read from the document (server first, then the browser for scans) */
+export async function scanFile(file, docType) {
+    let r;
+    try {
+        r = await apiUpload("/settings/documents/scan", { doc_type: docType }, file);
+    } catch (e) {
+        // the server refused the file (too big for its settings) → still read it here; saving needs the server fixed
+        r = { how: "none", found: 0, fields: {}, uploadError: e.message };
+    }
+    if (r.how !== "none" || !/^(image\/|application\/pdf)/.test(file.type)) return r;
+    const text = await browserOcr(file).catch(() => "");
+    if (!text.trim()) return { ...r, message: r.uploadError || "Couldn't read this scan. Fill in the details yourself." };
+    const f = await apiFetch("/settings/documents/fields", { method: "POST", body: JSON.stringify({ doc_type: docType, text }) });
+    return r.uploadError ? { ...f, found: 0, message: `${f.message} But the server refused the file: ${r.uploadError}` } : f;
+}
+
 export async function uploadIdFile(original, validId) {
     const file = await shrinkImage(original);
     if (file.size > MAX_UPLOAD) throw new Error("The file is too big (20 MB at most).");
