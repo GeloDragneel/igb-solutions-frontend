@@ -10,19 +10,49 @@ import { useAuth, apiFetch } from "../context/AuthContext";
 import { CoaPicker, PwInput } from "./client/ClientPopups";
 import "./client/ClientCoa.css";
 import "./SettingsCoaTour.css";
+import { WhNoticeDocs, uploadIdFile } from "./SettingsDocs";
+import ValidIdsPanel from "./ValidIdsPanel";
 
 const SECTIONS = [
     ["profile", "Profile"],
     ["contact", "Contact & Address"],
     ["ownership", "Business Ownership"],
     ["classification", "Classification & Compliance"],
-    ["ids", "Valid IDs"],
+    ["ids", "Valid IDs & Permits"],
     ["accounts", "Business Accounts"],
     ["signin", "Sign-in (Google / Facebook)"],
 ];
 // new client from Google / Facebook sign-up: walk through these, then Save changes
 const WELCOME_STEPS = SECTIONS.filter(([k]) => k !== "signin");
-const INSTITUTIONS = ["BIR", "SSS", "PHILHEALTH", "PAG-IBIG", "DTI", "SEC", "MAYOR'S PERMIT", "OTHERS"];
+// every government ID / registration / permit of a Philippine business (+ IDs of the owner / authorized representative)
+// "BIR" stays as is: it is the client's TIN that BIR Return, E-Sub Report and reports read
+const INSTITUTIONS = [
+    // BIR
+    "BIR", "BIR – CERTIFICATE OF REGISTRATION (COR / FORM 2303)", "BIR – TIN ID", "BIR – AUTHORITY TO PRINT (ATP)",
+    "BIR – REGISTERED BOOKS OF ACCOUNTS", "BIR – CAS / CRM / POS PERMIT", "BIR – REGISTRATION FEE (FORM 0605)",
+    "BIR – NOTICE AS TOP WITHHOLDING AGENT", "BIR – TAX CLEARANCE",
+    // registration of the business
+    "DTI – BUSINESS NAME CERTIFICATE", "SEC – CERTIFICATE OF INCORPORATION", "SEC – ARTICLES OF INCORPORATION", "SEC – BY-LAWS",
+    "SEC – GENERAL INFORMATION SHEET (GIS)", "SEC – CERTIFICATE OF PARTNERSHIP", "CDA – CERTIFICATE OF REGISTRATION", "BMBE CERTIFICATE",
+    // city / barangay
+    "MAYOR'S / BUSINESS PERMIT", "BARANGAY CLEARANCE", "COMMUNITY TAX CERTIFICATE (CEDULA)", "LOCATIONAL / ZONING CLEARANCE",
+    "BUILDING PERMIT", "OCCUPANCY PERMIT", "BFP – FIRE SAFETY INSPECTION CERTIFICATE", "SANITARY PERMIT", "HEALTH CERTIFICATE",
+    // employer
+    "SSS – EMPLOYER REGISTRATION (R-1)", "PHILHEALTH – EMPLOYER REGISTRATION (ER1)", "PAG-IBIG – EMPLOYER REGISTRATION",
+    "DOLE – ESTABLISHMENT REGISTRATION (RULE 1020)", "DOLE – D.O. 174 REGISTRATION",
+    // environment / trade / incentives
+    "DENR – ENVIRONMENTAL COMPLIANCE CERTIFICATE (ECC)", "DENR – PERMIT TO OPERATE", "DENR – HAZARDOUS WASTE GENERATOR ID", "LLDA CLEARANCE",
+    "BUREAU OF CUSTOMS – IMPORTER / BROKER ACCREDITATION", "BOARD OF INVESTMENTS (BOI) REGISTRATION", "PEZA REGISTRATION",
+    // licenses by industry
+    "FDA – LICENSE TO OPERATE", "FDA – CERTIFICATE OF PRODUCT REGISTRATION", "IPOPHL – TRADEMARK", "NPC – DATA PRIVACY REGISTRATION",
+    "BSP LICENSE", "INSURANCE COMMISSION LICENSE", "PCAB – CONTRACTOR'S LICENSE", "LTFRB FRANCHISE", "LTO REGISTRATION", "NTC PERMIT",
+    "DOE PERMIT", "DOT ACCREDITATION", "DICT REGISTRATION", "TESDA ACCREDITATION", "DEPED PERMIT", "CHED PERMIT", "DA / BAI PERMIT",
+    "PNP – FEO LICENSE", "PHILGEPS REGISTRATION", "PRC – PROFESSIONAL LICENSE",
+    // IDs of the owner / authorized representative
+    "PHILSYS NATIONAL ID", "PASSPORT", "DRIVER'S LICENSE", "UMID", "SSS ID", "PHILHEALTH ID", "PAG-IBIG ID", "PRC ID",
+    "POSTAL ID", "VOTER'S ID / CERTIFICATION", "SENIOR CITIZEN ID", "PWD ID",
+    "OTHERS",
+];
 // BIR TIN: digits only, shown as 000-000-000
 const TIN_RE = /^\d{3}-\d{3}-\d{3}$/;
 const fmtTin = (v) => String(v || "").replace(/\D/g, "").slice(0, 9).replace(/(\d{3})(?=\d)/g, "$1-");
@@ -59,7 +89,18 @@ const toForm = (c) => ({
     date_registered: day(c?.date_registered),
     compliance_ids: str(c?.compliance_ids).split(",").map((x) => x.trim()).filter(Boolean),
     is_top_withholding_agent: Number(c?.is_top_withholding_agent || 0) === 1,
+    // scanned documents: date of operation (BIR 2303), withholding agent
+    date_of_operation: day(c?.date_of_operation),
+    msme_class: str(c?.msme_class),
 });
+// MSME classification (RA 9501) – asset size excluding land · annual gross sales · employees
+const MSME = [
+    { k: "nano", label: "Nano", asset: "Up to ₱50,000.00", sales: "Up to ₱250,000.00", emp: "1" },
+    { k: "micro", label: "Micro", asset: "Up to ₱3,000,000.00", sales: "Below ₱3,000,000.00", emp: "1 – 9" },
+    { k: "small", label: "Small", asset: "₱3,000,001.00 to ₱15,000,000.00", sales: "₱3,000,000.00 to below ₱20,000,000.00", emp: "10 – 99" },
+    { k: "medium", label: "Medium", asset: "₱15,000,001.00 to ₱100,000,000.00", sales: "₱20,000,000.00 to below ₱1,000,000,000.00", emp: "100 – 199" },
+    { k: "large", label: "Large", asset: "Above ₱100,000,000.00", sales: "Above ₱1,000,000,000.00", emp: "200 or above" },
+];
 const EMPTY_LOGIN = { username: "", password: "", is_active: true, is_web: true, is_pos: false, is_mobile: false };
 
 // keep only simple formatting tags from stored HTML
@@ -199,7 +240,6 @@ export default function Settings() {
     const [saved, setSaved] = useState(null);
     const [saving, setSaving] = useState(false);
     const [askSave, setAskSave] = useState(false);
-    const [openDetail, setOpenDetail] = useState(null);   // classification id showing details
 
     const [acct, setAcct] = useState(null);               // business account form
     const [acctTab, setAcctTab] = useState("info");
@@ -219,6 +259,8 @@ export default function Settings() {
     const [accFilter, setAccFilter] = useState("all");   // all | main | branch | inactive
 
     const [newId, setNewId] = useState({ institution: "BIR", id_num: "" });
+    const [newFile, setNewFile] = useState(null);       // file picked with a new ID (uploaded after the ID is added)
+    const newFileRef = useRef(null);
     const [idBusy, setIdBusy] = useState(false);
     const [delId, setDelId] = useState(null);
 
@@ -230,8 +272,11 @@ export default function Settings() {
     const [coaRev, setCoaRev] = useState(0);          // +1 after an account save → check again
     const [tour, setTour] = useState(null);           // { step, account } – short guide to pick the Charts of account
     const [editBusy, setEditBusy] = useState(false);
+    // scanned documents (S3 → ID_Solutions/{client #}/…)
+    const [docs, setDocs] = useState([]);
     const load = async () => {
         setError("");
+        apiFetch("/settings/documents").then((d) => setDocs(d.documents || [])).catch(() => setDocs([]));
         try {
             const r = await apiFetch("/settings");
             setData(r);
@@ -346,6 +391,15 @@ export default function Settings() {
             // Top Withholding Agent (m_client.is_top_withholding_agent)
             const t = await apiFetch("/settings/twa", { method: "PUT", body: JSON.stringify({ is_top_withholding_agent: !!form.is_top_withholding_agent }) });
             r.client = { ...r.client, is_top_withholding_agent: t.is_top_withholding_agent ? 1 : 0 };
+            // date of operation, withholding agent
+            const x = await apiFetch("/settings/profile-extra", {
+                method: "PUT",
+                body: JSON.stringify({
+                    date_of_operation: form.date_of_operation || null,
+                    msme_class: form.msme_class || null,
+                }),
+            });
+            r.client = { ...r.client, ...(x.profile || {}) };
             const f = toForm(r.client);
             setForm(f);
             setSaved(JSON.stringify(f));
@@ -526,7 +580,14 @@ export default function Settings() {
             const r = await apiFetch("/settings/valid-ids", { method: "POST", body: JSON.stringify(newId) });
             setData((d) => ({ ...d, valid_ids: r.valid_ids }));
             setNewId((s) => ({ ...s, id_num: "" }));
-            notify("ID added.");
+            // the file picked with it → attach to the new ID (newest row with the same institution + number)
+            const added = [...(r.valid_ids || [])].filter((v) => String(v.institution).toUpperCase() === String(newId.institution).toUpperCase() && String(v.id_num) === String(newId.id_num.trim()))
+                .sort((a, b) => Number(b.id) - Number(a.id))[0];
+            if (newFile && added) {
+                try { setDocs(await uploadIdFile(newFile, added)); notify("ID and file added."); }
+                catch (e2) { notify(`ID added, but the file failed: ${e2.message}`, "error"); }
+            } else notify("ID added.");
+            setNewFile(null);
         } catch (e) {
             notify(e.message || "Couldn't add the ID.", "error");
         } finally {
@@ -540,6 +601,9 @@ export default function Settings() {
         try {
             const r = await apiFetch(`/settings/valid-ids/${v.id}`, { method: "DELETE" });
             setData((d) => ({ ...d, valid_ids: r.valid_ids }));
+            // its file goes too
+            const f = docs.find((d) => d.doc_type === "valid_id" && Number(d.valid_id_id) === Number(v.id));
+            if (f) apiFetch(`/settings/documents/${f.id}`, { method: "DELETE" }).then((x) => setDocs(x.documents || [])).catch(() => { });
             notify("ID removed.");
         } catch (e) {
             notify(e.message || "Couldn't remove the ID.", "error");
@@ -826,7 +890,7 @@ export default function Settings() {
                                 </p>
                             )}
 
-                            <div className="st-grid st-mt">
+                            <div className="st-grid sd-grid3 st-mt">
                                 <label className="field">
                                     <span className="field-label">Date started</span>
                                     <input type="date" className="input" value={form.date_started} onChange={(e) => set({ date_started: e.target.value })} />
@@ -835,7 +899,12 @@ export default function Settings() {
                                     <span className="field-label">Date registered</span>
                                     <input type="date" className="input" value={form.date_registered} onChange={(e) => set({ date_registered: e.target.value })} />
                                 </label>
+                                <label className="field">
+                                    <span className="field-label">Date of operation <small className="muted">(tax compliance starts)</small></span>
+                                    <input type="date" className="input" value={form.date_of_operation} onChange={(e) => set({ date_of_operation: e.target.value })} />
+                                </label>
                             </div>
+
 
                             <h2 className="st-h st-mt">Withholding</h2>
                             <label className={`st-twa ${form.is_top_withholding_agent ? "is-on" : ""}`}>
@@ -850,57 +919,44 @@ export default function Settings() {
                                 </span>
                                 <span className={`st-twa-state ${form.is_top_withholding_agent ? "is-yes" : ""}`}>{form.is_top_withholding_agent ? "Yes" : "No"}</span>
                             </label>
+                            {form.is_top_withholding_agent && <WhNoticeDocs docs={docs} setDocs={setDocs} notify={notify} />}
                         </>
                     )}
 
                     {/* CLASSIFICATION & COMPLIANCE */}
                     {section === "classification" && (
                         <>
+                            {/* MSME (Magna Carta for MSMEs, RA 9501) – same cards as Classification */}
                             <h2 className="st-h">Classification</h2>
                             <div className="st-classes" role="radiogroup" aria-label="Classification">
-                                {(L.classification || []).map((c) => {
-                                    const on = form.classification_id === String(c.id);
-                                    const sections = hasHtml(c.label)
-                                        ? toSections(c.label)
-                                        : [{ title: "", items: [c.label] }, ...(c.description && c.description !== c.label ? toSections(c.description) : [])];
-                                    const MAX = 3;
-                                    const expanded = openDetail === c.id;
-                                    const shown = expanded ? sections : sections.slice(0, MAX);
-                                    const hidden = sections.length - MAX;
+                                {MSME.map((c) => {
+                                    const on = form.msme_class === c.k;
                                     return (
-                                        <label key={c.id} className={`st-class ${on ? "is-on" : ""} ${expanded ? "is-open" : ""}`}>
-                                            <input type="radio" name="classification" className="st-class-radio" checked={on}
-                                                onChange={() => set({ classification_id: String(c.id) })} />
+                                        <label key={c.k} className={`st-class ${on ? "is-on" : ""}`}>
+                                            <input type="radio" name="msme_class" className="st-class-radio" checked={on}
+                                                onChange={() => set({ msme_class: c.k })} />
                                             <span className="st-class-check" aria-hidden="true">
                                                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                                                     <path d="m5 12 5 5L20 7" />
                                                 </svg>
                                             </span>
-
                                             <dl className="st-facts">
-                                                {shown.map((s, i) => (
-                                                    <div key={i} className="st-fact">
-                                                        <dt>{s.title ? s.title : "Note"}</dt>
-                                                        <dd>
-                                                            {s.items.map((it, j) => (
-                                                                <span key={j} className="st-fact-v" title={it}>{it}</span>
-                                                            ))}
-                                                        </dd>
+                                                {[["Type", c.label], ["Asset size (excluding land)", c.asset], ["Annual gross sales", c.sales], ["Employees", c.emp]].map(([t, v]) => (
+                                                    <div key={t} className="st-fact">
+                                                        <dt>{t}</dt>
+                                                        <dd><span className="st-fact-v" title={v}>{v}</span></dd>
                                                     </div>
                                                 ))}
                                             </dl>
-
-                                            {hidden > 0 && (
-                                                <button type="button" className="st-class-more" aria-expanded={expanded}
-                                                    onClick={(e) => { e.preventDefault(); setOpenDetail(expanded ? null : c.id); }}>
-                                                    {expanded ? "Show less" : `+ ${hidden} more`}
-                                                </button>
-                                            )}
                                         </label>
                                     );
                                 })}
-                                {!(L.classification || []).length && <p className="muted">No classifications found.</p>}
                             </div>
+                            <p className="st-note">
+                                Based on the Magna Carta for MSMEs (RA 9501). For the accounting framework of corporations, see SEC MC No. 4, Series of 2026.
+                                Check RA 9178 (Barangay Micro Business Enterprises Act of 2002) if the client may qualify.
+                            </p>
+
 
                             <h2 className="st-h st-mt">
                                 Compliance <span className="muted st-h-note">({form.compliance_ids.length} selected)</span>
@@ -943,89 +999,10 @@ export default function Settings() {
                         </>
                     )}
 
-                    {/* VALID IDS */}
+                    {/* VALID IDS & PERMITS */}
                     {section === "ids" && (
-                        <>
-                            <h2 className="st-h">Valid IDs</h2>
-                            <p className="st-note st-note-top">
-                                The <b>BIR</b> ID is the client's TIN. BIR Return, E-Sub Report and the Report Generator read it from here.
-                            </p>
-                            <div className="st-id-add">
-                                <div className="field">
-                                    <span className="field-label">Institution</span>
-                                    <SearchSelect value={newId.institution} options={INSTITUTIONS.map((x) => ({ value: x, label: x }))}
-                                        onChange={(v) => setNewId((s) => ({ institution: v, id_num: fmtIdFor(v, s.id_num) }))} aria-label="Institution" />
-                                </div>
-                                <label className="field st-grow">
-                                    <span className="field-label">ID number</span>
-                                    <input className="input mono" value={newId.id_num}
-                                        inputMode={isBir(newId.institution) ? "numeric" : "text"}
-                                        maxLength={isBir(newId.institution) ? 11 : 60}
-                                        placeholder={isBir(newId.institution) ? "000-000-000" : ""}
-                                        onChange={(e) => setNewId((s) => ({ ...s, id_num: fmtIdFor(s.institution, e.target.value) }))}
-                                        onKeyDown={(e) => { if (e.key === "Enter") addId(); }} />
-                                </label>
-                                <button className="btn btn-primary st-id-btn" onClick={addId} disabled={idBusy}>{idBusy ? "Adding…" : "Add ID"}</button>
-                            </div>
-                            <ul className="st-ids">
-                                {data.valid_ids.map((v) => {
-                                    const editing = editId?.id === v.id;
-                                    const instOpts = INSTITUTIONS.includes(v.institution)
-                                        ? INSTITUTIONS
-                                        : [v.institution, ...INSTITUTIONS];
-                                    return (
-                                        <li key={v.id} className={`st-idrow ${editing ? "is-editing" : ""}`}>
-                                            {editing ? (
-                                                <>
-                                                    <div className="st-id-inst-edit">
-                                                        <SearchSelect value={editId.institution}
-                                                            options={instOpts.map((x) => ({ value: x, label: x }))}
-                                                            onChange={(val) => setEditId((s) => ({ ...s, institution: val, id_num: fmtIdFor(val, s.id_num) }))}
-                                                            aria-label="Institution" />
-                                                    </div>
-                                                    <input className="input mono st-idnum-edit" value={editId.id_num} autoFocus
-                                                        inputMode={isBir(editId.institution) ? "numeric" : "text"}
-                                                        maxLength={isBir(editId.institution) ? 11 : 60}
-                                                        placeholder={isBir(editId.institution) ? "000-000-000" : ""}
-                                                        onChange={(e) => setEditId((s) => ({ ...s, id_num: fmtIdFor(s.institution, e.target.value) }))}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === "Enter") saveEditId();
-                                                            if (e.key === "Escape") setEditId(null);
-                                                        }}
-                                                        aria-label="ID number" />
-                                                    <div className="st-id-actions">
-                                                        <button className="btn btn-sm" onClick={() => setEditId(null)} disabled={editBusy}>Cancel</button>
-                                                        <button className="btn btn-sm btn-primary" onClick={saveEditId} disabled={editBusy}>
-                                                            {editBusy ? "Saving…" : "Save"}
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className={`st-inst ${v.institution === "BIR" ? "is-bir" : ""}`}>{v.institution}</span>
-                                                    <span className="mono st-idnum">{v.id_num}</span>
-                                                    <div className="st-id-actions">
-                                                        <button className="tm-icon" onClick={() => setEditId({ id: v.id, institution: v.institution, id_num: fmtIdFor(v.institution, v.id_num) })}
-                                                            aria-label={`Edit ${v.institution} ID`} title="Edit" disabled={!!editId}>
-                                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                                <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                            </svg>
-                                                        </button>
-                                                        <button className="tm-icon tm-icon-danger" onClick={() => setDelId(v)}
-                                                            aria-label={`Remove ${v.institution} ID`} title="Remove" disabled={!!editId}>
-                                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                                <path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </li>
-                                    );
-                                })}
-                                {!data.valid_ids.length && <li className="st-empty">No IDs yet. Add the BIR TIN first.</li>}
-                            </ul>
-                        </>
+                        <ValidIdsPanel ids={data.valid_ids} setIds={(v) => setData((d) => ({ ...d, valid_ids: v }))}
+                            institutions={INSTITUTIONS} docs={docs} setDocs={setDocs} notify={notify} />
                     )}
 
                     {/* BUSINESS ACCOUNTS */}
