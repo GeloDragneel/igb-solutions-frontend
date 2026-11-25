@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Website.css";
-import shotDesktop from "../assets/website/igb-desktop.webp";
-import shotLogin from "../assets/website/app-login.webp";
-import shotScan from "../assets/website/app-scan.webp";
-import shotSales from "../assets/website/app-sales.webp";
+import shotDesktop from "../assets/website/igb-desktop.jpg";
+import shotLogin from "../assets/website/app-login.jpg";
+import shotScan from "../assets/website/app-scan.jpg";
+import shotSales from "../assets/website/app-sales.jpg";
 
 // Public website shown at "/" when nobody is logged in.
 // Every "Login" button goes to /login (the system's sign-in page).
