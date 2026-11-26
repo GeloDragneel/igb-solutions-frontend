@@ -318,10 +318,103 @@ const CHAPTERS = [
             done: "Posted to Expenses, with VAT, and in your books. No typing.",
         },
     },
+
+
+
+
     {
-        key: "bir", group: "reports", tab: "BIR & Tax", title: "BIR & Tax reports", icon: "chart", crumb: ["Reports", "BIR & Tax", "Income Tax Summary"], layout: "report",
+        key: "birret", group: "reports", tab: "BIR Return", title: "BIR Return", icon: "chart", crumb: ["BIR & Tax", "BIR Return"], layout: "report",
+        heading: "BIR Return", company: "SAMPLE FUEL STATION", period: "TIN 000-123-456-000 · Gingoog City",
+        menu: {
+            title: "Returns", pick: 5,
+            items: [["0605", "Payment Form", "24"], ["0619-E", "Monthly Remittance – Expanded Withholding", "49"], ["1601-C", "Withholding Tax on Compensation", "70"],
+            ["1601-EQ", "Quarterly Remittance – Expanded Withholding", "25"], ["1702-Q", "Quarterly Income Tax – Corporations", "4"], ["2550-Q", "Quarterly VAT Return", "4"]],
+        },
+        fields: [],
+        report: {
+            cols: ["Period", "File", "Status", ""], num: 3,
+            rows: [
+                ["Q3 2026 · Jul – Sep", "000123456000-2550Q-092026.xml", { pill: "Not filed" }, { btns: ["File & submit", "Open", "Download"] }],
+                ["Q2 2026 · Apr – Jun", "000123456000-2550Q-062026.xml", { pill: "Filed", tone: "ok" }, { btns: ["Open", "Download"] }],
+                ["Q1 2026 · Jan – Mar", "000123456000-2550Q-032026.xml", { pill: "Filed", tone: "ok" }, { btns: ["Open", "Download"] }],
+                ["Q4 2025 · Oct – Dec", "000123456000-2550Q-122025.xml", { pill: "Filed", tone: "ok" }, { btns: ["Open", "Download"] }],
+            ],
+        },
+        button: "+ New 2550-Q", toast: "2550-Q ready to file",
+        captions: {
+            menu: "BIR Return: every form in one place. Pick 2550-Q.",
+            search: "Click + New 2550-Q. It is filled from your books.",
+            rows: "Saved returns open in the eBIRForms app too. File & submit when ready.",
+            done: "No retyping figures into eBIRForms.",
+        },
+    },
+    {
+        key: "vat", group: "reports", tab: "VAT Summary", title: "VAT Summary", icon: "chart", crumb: ["BIR & Tax", "VAT Summary"], layout: "report",
+        heading: "2550-M/Q Summary", company: "SAMPLE FUEL STATION", period: "From Jul – Sep 2026",
+        fields: [
+            { label: "Filter by", value: "Declared month", select: true, ro: true },
+            { label: "From", value: "July 2026" },
+            { label: "To", value: "September 2026" },
+            { label: "Accounts", value: "All accounts", select: true, ro: true },
+        ],
+        report: {
+            cols: ["Tag", "Summary Data", "Jul 2026", "Aug 2026", "Sep 2026", "Total"], num: 2,
+            rows: [
+                ["Sales", "Net of VAT", { link: "512,430.10" }, { link: "548,220.75" }, { link: "561,061.44" }, "1,621,712.29"],
+                ["Sales", "VAT Exempt", "0.00", "0.00", "0.00", "0.00"],
+                { total: ["Sales", "Total", "512,430.10", "548,220.75", "561,061.44", "1,621,712.29"] },
+                ["Purchases", "Net of VAT", { link: "160,812.40" }, { link: "171,903.22" }, { link: "176,212.95" }, "508,928.57"],
+                ["Purchases", "VAT Exempt", "0.00", "0.00", "0.00", "0.00"],
+                { total: ["Purchases", "Total", "160,812.40", "171,903.22", "176,212.95", "508,928.57"] },
+                ["Output VAT", "12%", "61,491.61", "65,786.49", "67,327.37", "194,605.47"],
+                ["Input VAT", "12%", "19,297.49", "20,628.39", "21,145.55", "61,071.43"],
+                { net: ["VAT Payable", "", "42,194.12", "45,158.10", "46,181.82", "133,534.04"] },
+            ],
+        },
+        button: "Search", toast: "VAT summary ready",
+        captions: {
+            fields: "Pick the months, by declared month or date range.",
+            search: "Click Search.",
+            rows: "Sales and purchases by VAT type, output and input VAT, month by month.",
+            done: "Click any amount to see the invoices behind it.",
+        },
+    },
+    {
+        key: "esub", group: "reports", tab: "E-Sub Report", title: "E-Sub Report", icon: "chart", crumb: ["BIR & Tax", "E-Sub Report"], layout: "report",
+        heading: "Purchase Summary", company: "SAMPLE FUEL STATION", period: "2026-07 to 2026-09",
+        menu: {
+            title: "Reports", pick: 0,
+            items: [["Purchases", "Purchase Summary"], ["Sales", "Sales Summary"], ["1601-EQ", "Sales · Income Tax (IT)"], ["1601-EQ", "Purchases & Expenses"], ["1604-E", "Annual Information Return"]],
+        },
+        fields: [
+            { label: "From", value: "July 2026" },
+            { label: "To", value: "September 2026" },
+        ],
+        banner: { title: "Passed the RELIEF checks – the DAT is ready", sub: "TIN, names, amounts, period and header were checked. 1 thing was fixed automatically." },
+        report: {
+            cols: ["#", "Reference", "Date", "TIN", "Registered Name", "City", "Amount"], num: 6,
+            rows: [
+                ["1", "AP-260804-0105", "Jul 28 2026", "000-168-801", "NORTHSTAR PETROLEUM CORP.", "CAGAYAN DE ORO", "214,346.00"],
+                ["2", "AP-260804-0106", "Jul 28 2026", "000-168-801", "NORTHSTAR PETROLEUM CORP.", "CAGAYAN DE ORO", "605,067.00"],
+                ["3", "AP-260804-0115", "Jul 15 2026", "908-312-297", "ISLAND POWER CO-OP", "GINGOOG CITY", "78,120.00"],
+                ["4", "AP-260804-0116", "Jul 15 2026", "009-566-975", "METRO FREIGHT EXPRESS", "GINGOOG CITY", "3,700.00"],
+                ["5", "AP-260804-0117", "Jul 23 2026", "160-893-600", "GREEN VALLEY HARDWARE", "GINGOOG CITY", "9,850.00"],
+                ["6", "AP-260805-0412", "Jul 18 2026", "212-186-731", "BRIGHT OFFICE SUPPLIES", "MAKATI CITY", "1,861.00"],
+                ["7", "AP-260805-0417", "Jul 03 2026", "000-293-041", "DELTA WATER DISTRICT", "GINGOOG CITY", "8,759.00"],
+            ],
+        },
+        button: "Search", toast: "DAT files ready",
+        captions: {
+            menu: "E-Sub Report: Purchases, Sales, 1601-EQ and 1604-E. Pick Purchases.",
+            fields: "Pick the declared months.",
+            search: "Click Search.",
+            rows: "Checked against the BIR RELIEF rules before you export.",
+            done: "Download the DAT, PDF or Excel in one click.",
+        },
+    },
+    {
+        key: "its", group: "reports", tab: "Income Tax Summary", title: "Income Tax Summary", icon: "chart", crumb: ["BIR & Tax", "Income Tax Summary"], layout: "report",
         heading: "Income Tax Summary", company: "SAMPLE FUEL STATION", period: "July 2026 – September 2026",
-        menu: { title: "BIR & Tax", items: ["BIR Return", "BIR2307", "VAT Summary", "E-Sub Report", "Income Tax Summary"], pick: 4 },
         fields: [
             { label: "From", value: "July 2026" },
             { label: "To", value: "September 2026" },
@@ -342,15 +435,199 @@ const CHAPTERS = [
         },
         button: "Search", toast: "Ready for filing",
         captions: {
-            menu: "Reports › BIR & Tax: BIR Return, 2307, VAT Summary, E-Sub and Income Tax Summary.",
             fields: "Pick the months to cover.",
             search: "Click Search.",
             rows: "Built from your sales, cost of sales and expenses. Nothing to compute by hand.",
             done: "Click any figure to see the documents behind it.",
         },
+    }, {
+        key: "jr", group: "reports", tab: "Journals", title: "Journals", icon: "book", crumb: ["Books & Ledger", "Journals"], layout: "report",
+        heading: "Sales Journal", company: "SAMPLE FUEL STATION", period: "For the Period From : 2026-07 to 2026-09",
+        subtabs: ["Sales Journal", "Purchase Receipts Journal", "Cash Disbursement Journal", "General Journal"],
+        fields: [
+            { label: "Filter Type", value: "Declared Month", select: true, ro: true },
+            { label: "From", value: "July 2026" },
+            { label: "To", value: "September 2026" },
+            { label: "Branch", value: "This branch", select: true, ro: true },
+        ],
+        report: {
+            cols: ["Date", "Account ID", "Tran", "Name", "Line Description", "Debit Amnt", "Credit Amnt"], num: 5,
+            rows: [
+                ["2026-07", "11101", "0461", "Walk In", "Cash", "1,120.00", ""],
+                ["2026-07", "40010", "0461", "Walk In", "Sales – Diesel", "", "1,000.00"],
+                ["2026-07", "21401", "0461", "Walk In", "Output VAT – Diesel", "", "120.00"],
+                ["2026-07", "50010", "0461", "Walk In", "Cost of Sales – Diesel", "942.00", ""],
+                ["2026-07", "11301", "0461", "Walk In", "Inventory – Diesel", "", "942.00"],
+                ["2026-07", "11201", "0462", "Harbor Logistics", "Accounts Receivable", "5,600.00", ""],
+                ["2026-07", "40010", "0462", "Harbor Logistics", "Sales – Diesel", "", "5,000.00"],
+                ["2026-07", "21401", "0462", "Harbor Logistics", "Output VAT – Diesel", "", "600.00"],
+                { total: ["", "", "", "", "Total", "7,662.00", "7,662.00"] },
+            ],
+        },
+        button: "Search", toast: "Journal balanced",
+        captions: {
+            fields: "Sales, Purchase Receipts, Cash Disbursement and General Journal. Pick the period.",
+            search: "Click Search.",
+            rows: "Every invoice already posted as debits and credits, cost of sales included.",
+            done: "Debits equal credits. Nothing to post by hand.",
+        },
     },
     {
-        key: "tb", group: "reports", tab: "Trial Balance", title: "Trial balance", icon: "book", crumb: ["Reports", "Books", "General Ledger Trial Balance"], layout: "report",
+        key: "rpt", group: "reports", tab: "Reports", title: "Reports", icon: "chart", crumb: ["Books & Ledger", "Reports"], layout: "report",
+        heading: "Sales Report", company: "SAMPLE FUEL STATION", period: "From : 2026-07 To 2026-09",
+        subtabs: ["Sales Report", "Purchase Report", "Expense Report", "Importation Report", "Exportation Report"],
+        fields: [
+            { label: "Filter Type", value: "Declared Month", select: true, ro: true },
+            { label: "From", value: "July 2026" },
+            { label: "To", value: "September 2026" },
+            { label: "Accounts", value: "All", select: true, ro: true },
+        ],
+        report: {
+            cols: ["#", "Date", "TIN", "Customer", "Document", "Account Title", "Amount"], num: 6,
+            rows: [
+                ["1", "03-Jul-2026", "000-000-000", "Walk In", "0461", "Cash Sales – Vatable", "1,000.00"],
+                ["2", "03-Jul-2026", "000-111-222", "Harbor Logistics", "0462", "Credit Sales – Vatable", "5,000.00"],
+                ["3", "09-Jul-2026", "214-552-018", "City Government", "0463", "Credit Sales – Vatable", "12,450.00"],
+                ["4", "09-Jul-2026", "208-331-907", "Bayview Telecom", "0464", "Credit Sales – Vatable", "8,320.00"],
+                ["5", "16-Jul-2026", "117-904-336", "Northpoint Logistics", "0465", "Credit Sales – Vatable", "3,600.00"],
+                ["6", "16-Jul-2026", "000-000-000", "Walk In", "0466", "Cash Sales – Vatable", "2,150.00"],
+                ["7", "23-Jul-2026", "301-226-548", "Greenfield Farms", "0467", "Credit Sales – Vatable", "6,780.00"],
+                { total: ["", "", "", "", "", "Total", "39,300.00"] },
+            ],
+        },
+        button: "Search", toast: "Report ready",
+        captions: {
+            fields: "Sales, Purchase, Expense, Importation and Exportation reports. Pick the period.",
+            search: "Click Search.",
+            rows: "Every document with TIN, account and amount. Filter any column.",
+            done: "Print, or export to Excel.",
+        },
+    },
+    {
+        key: "gl", group: "reports", tab: "Ledgers", title: "Ledgers", icon: "book", crumb: ["Books & Ledger", "Ledgers"], layout: "report",
+        heading: "General Ledger", company: "SAMPLE FUEL STATION", period: "For the Period From 2026-07 to 2026-09",
+        subtabs: ["General Ledger", "Summary Ledger", "Customer Ledger", "Vendor Ledger"],
+        fields: [
+            { label: "Filter Type", value: "Declared Month", select: true, ro: true },
+            { label: "From", value: "July 2026" },
+            { label: "To", value: "September 2026" },
+            { label: "Accounts", value: "Cash on Hand", select: true, ro: true },
+        ],
+        report: {
+            wide: true, cols: ["Account ID", "Account Description", "Date", "Reference", "Jrnl", "Trans Description", "Debit Amount", "Credit Amount", "Balance"], num: 6,
+            rows: [
+                ["11101", "Cash on Hand", "2026-07", "", "", "Beginning Balance", "", "", "4,215,300.50"],
+                ["11101", "Cash on Hand", "2026-07", { link: "0461" }, "SJ", "Walk In", "1,120.00", "", "4,216,420.50"],
+                ["11101", "Cash on Hand", "2026-07", { link: "VI-10465" }, "CDJ", "Delta Water District", "", "8,250.00", "4,208,170.50"],
+                ["11101", "Cash on Hand", "2026-07", { link: "0466" }, "SJ", "Walk In", "2,408.00", "", "4,210,578.50"],
+                ["11101", "Cash on Hand", "2026-08", { link: "VI-10471" }, "CDJ", "Bayview Telecom", "", "1,899.00", "4,208,679.50"],
+                ["11101", "Cash on Hand", "2026-08", { link: "0470" }, "SJ", "Walk In", "3,360.00", "", "4,212,039.50"],
+                ["11101", "Cash on Hand", "2026-09", { link: "E-20260912" }, "PJ", "Shell – Gingoog", "", "1,120.00", "4,210,919.50"],
+            ],
+        },
+        button: "Search", toast: "Ledger ready",
+        captions: {
+            fields: "General, Summary, Customer and Vendor ledgers. Pick the period.",
+            search: "Click Search.",
+            rows: "Every entry with a running balance. Click a reference to open the document.",
+            done: "From any balance straight to the invoice behind it.",
+        },
+    },
+    {
+        key: "ar", group: "reports", tab: "Receivable", title: "Receivable", icon: "sales", crumb: ["Other Reports", "Account Receivable"], layout: "report",
+        heading: "Accounts Receivable", company: "SAMPLE FUEL STATION", period: "As of Nov 30 2026",
+        subtabs: ["Account Receivable", "Aged Receivable"],
+        fields: [
+            { label: "Transaction month", value: "November 2026" },
+            { label: "Branch", value: "This branch", select: true, ro: true },
+        ],
+        aging: [["0 - 30", "12,450.00", "g"], ["31 - 60", "8,920.00", "y"], ["61 - 90", "5,600.00", "o"], ["Over 90 days", "-", "r"], ["Amount due", "26,970.00", "t"]],
+        report: {
+            cols: ["Customer / Invoice #", "Date", "Days", "0 - 30", "31 - 60", "61 - 90", "Over 90", "Amount Due"], num: 2,
+            rows: [
+                { section: "HARBOR LOGISTICS  #36767" },
+                ["R-202609-0335", "Sep 22 2026", "65", "", "", "5,600.00", "", "5,600.00"],
+                ["R-202610-0342", "Oct 02 2026", "55", "", "3,120.00", "", "", "3,120.00"],
+                { total: ["Total Harbor Logistics", "", "", "-", "3,120.00", "5,600.00", "-", "8,720.00"] },
+                { section: "CITY GOVERNMENT  #49231" },
+                ["PF-202610-0490", "Oct 05 2026", "52", "", "5,800.00", "", "", "5,800.00"],
+                ["PF-202611-0511", "Nov 03 2026", "23", "12,450.00", "", "", "", "12,450.00"],
+                { total: ["Total City Government", "", "", "12,450.00", "5,800.00", "-", "-", "18,250.00"] },
+                { net: ["Grand total · 2 customers", "", "", "12,450.00", "8,920.00", "5,600.00", "-", "26,970.00"] },
+            ],
+        },
+        button: "Search", toast: "Receivables aged",
+        captions: {
+            fields: "Account Receivable and Aged Receivable. Pick the month.",
+            search: "Click Search.",
+            rows: "Who owes you, per invoice, aged 0–30, 31–60, 61–90 and over 90 days.",
+            done: "Export to Excel or PDF and follow up.",
+        },
+    },
+    {
+        key: "ap", group: "reports", tab: "Payables", title: "Payables", icon: "buy", crumb: ["Other Reports", "Account Payable"], layout: "report",
+        heading: "Accounts Payable", company: "SAMPLE FUEL STATION", period: "As of Nov 30 2026",
+        subtabs: ["Account Payable", "Aged Payable"],
+        fields: [
+            { label: "Transaction month", value: "November 2026" },
+            { label: "Branch", value: "This branch", select: true, ro: true },
+        ],
+        aging: [["0 - 30", "1,375,864.35", "g"], ["31 - 60", "34,523.97", "y"], ["61 - 90", "7,066.34", "o"], ["Over 90 days", "-", "r"], ["Amount due", "1,417,454.66", "t"]],
+        report: {
+            cols: ["Vendor / Invoice #", "Date", "Days", "0 - 30", "31 - 60", "61 - 90", "Over 90", "Amount Due"], num: 2,
+            rows: [
+                { section: "NORTHSTAR PETROLEUM CORP.  #23693" },
+                ["VI-10482", "Nov 26 2026", "0", "1,235,400.61", "", "", "", "1,235,400.61"],
+                ["VI-10431", "Sep 29 2026", "58", "", "34,523.97", "", "", "34,523.97"],
+                { total: ["Total Northstar Petroleum Corp.", "", "", "1,235,400.61", "34,523.97", "-", "-", "1,269,924.58"] },
+                { section: "ISLAND POWER CO-OP  #23701" },
+                ["VI-10477", "Nov 12 2026", "14", "140,463.74", "", "", "", "140,463.74"],
+                ["VI-10402", "Sep 21 2026", "66", "", "", "7,066.34", "", "7,066.34"],
+                { total: ["Total Island Power Co-op", "", "", "140,463.74", "-", "7,066.34", "-", "147,530.08"] },
+                { net: ["Grand total · 2 vendors", "", "", "1,375,864.35", "34,523.97", "7,066.34", "-", "1,417,454.66"] },
+            ],
+        },
+        button: "Search", toast: "Payables aged",
+        captions: {
+            fields: "Account Payable and Aged Payable. Pick the month.",
+            search: "Click Search.",
+            rows: "What you owe each vendor, per invoice, by age.",
+            done: "Plan payments before anything goes overdue.",
+        },
+    },
+    {
+        key: "bs", group: "reports", tab: "Balance Sheet", title: "Balance sheet", icon: "chart", crumb: ["Financial Reports", "Balance Sheet"], layout: "report",
+        heading: "Balance Sheet", company: "SAMPLE FUEL STATION", period: "Year 2025 – 2026",
+        fields: [
+            { label: "From", value: "2025" },
+            { label: "To", value: "2026" },
+        ],
+        report: {
+            cols: ["Code", "Account", "2025", "2026"], num: 2,
+            rows: [
+                { section: "Current Assets" },
+                ["11101", "Cash on Hand", "3,412,880.15", "4,215,300.50"],
+                ["11301", "Inventory – Diesel", "2,149,732.14", "2,479,017.86"],
+                ["11401", "Input VAT – Diesel", "257,967.86", "358,601.30"],
+                { total: ["", "Total Current Assets", "5,820,580.15", "7,052,919.66"] },
+                { section: "Liabilities" },
+                ["21000", "Accounts Payable", "2,580,116.43", "3,214,880.50"],
+                ["21401", "Output VAT – Diesel", "995,870.50", "1,190,475.97"],
+                { total: ["", "Total Liabilities", "3,575,986.93", "4,405,356.47"] },
+                { section: "Equity" },
+                ["30000", "Owner's Capital", "2,244,593.22", "2,647,563.19"],
+                { net: ["", "Total Liabilities & Equity", "5,820,580.15", "7,052,919.66"] },
+            ],
+        },
+        button: "Search", toast: "Assets = Liabilities + Equity",
+        captions: {
+            fields: "Pick the years to compare.",
+            search: "Click Search.",
+            rows: "Assets, liabilities and equity side by side, year against year.",
+            done: "Always balanced, because every entry is double-entry from the start.",
+        },
+    }, {
+        key: "tb", group: "reports", tab: "Trial Balance", title: "Trial balance", icon: "book", crumb: ["Financial Reports", "Trial Balance"], layout: "report",
         heading: "General Ledger Trial Balance", company: "SAMPLE FUEL STATION", period: "For the Period From 2026-07 to 2026-09",
         fields: [
             { label: "Filter Type", value: "Declared Month", select: true, ro: true },
@@ -381,41 +658,8 @@ const CHAPTERS = [
             rows: "Every account with its debits, credits and balance, straight from the journals.",
             done: "View opens the ledger of any account. Print or export in one click.",
         },
-    },
-    {
-        key: "bs", group: "reports", tab: "Balance Sheet", title: "Balance sheet", icon: "chart", crumb: ["Reports", "Financial Statements", "Balance Sheet"], layout: "report",
-        heading: "Balance Sheet", company: "SAMPLE FUEL STATION", period: "Year 2025 – 2026",
-        fields: [
-            { label: "From", value: "2025" },
-            { label: "To", value: "2026" },
-        ],
-        report: {
-            cols: ["Code", "Account", "2025", "2026"], num: 2,
-            rows: [
-                { section: "Current Assets" },
-                ["11101", "Cash on Hand", "3,412,880.15", "4,215,300.50"],
-                ["11301", "Inventory – Diesel", "2,149,732.14", "2,479,017.86"],
-                ["11401", "Input VAT – Diesel", "257,967.86", "358,601.30"],
-                { total: ["", "Total Current Assets", "5,820,580.15", "7,052,919.66"] },
-                { section: "Liabilities" },
-                ["21000", "Accounts Payable", "2,580,116.43", "3,214,880.50"],
-                ["21401", "Output VAT – Diesel", "995,870.50", "1,190,475.97"],
-                { total: ["", "Total Liabilities", "3,575,986.93", "4,405,356.47"] },
-                { section: "Equity" },
-                ["30000", "Owner's Capital", "2,244,593.22", "2,647,563.19"],
-                { net: ["", "Total Liabilities & Equity", "5,820,580.15", "7,052,919.66"] },
-            ],
-        },
-        button: "Search", toast: "Assets = Liabilities + Equity",
-        captions: {
-            fields: "Pick the years to compare.",
-            search: "Click Search.",
-            rows: "Assets, liabilities and equity side by side, year against year.",
-            done: "Always balanced, because every entry is double-entry from the start.",
-        },
-    },
-    {
-        key: "fs", group: "reports", tab: "Financial Statements", title: "Financial statements", icon: "file", crumb: ["Reports", "Financial Statements", "Working Trial Balance"], layout: "report",
+    }, {
+        key: "wtb", group: "reports", tab: "Working Trial Balance", title: "Working Trial Balance", icon: "file", crumb: ["Financial Reports", "Working Trial Balance"], layout: "report",
         heading: "Working Trial Balance", company: "SAMPLE FUEL STATION", period: "Year 2026",
         fields: [
             { label: "Year", value: "2026" },
@@ -440,12 +684,40 @@ const CHAPTERS = [
                 { net: ["Net Income / (Loss)", "", "", "", "", "838,704.61", ""] }
             ],
         },
-        button: "Search", toast: "Financial statements ready",
+        button: "Search", toast: "Working trial balance ready",
         captions: {
             fields: "Pick the year.",
             search: "Click Search.",
             rows: "Beginning balances, the year's entries and adjustments roll into the Income Statement and Balance Sheet.",
-            done: "Net income is worked out for you, ready for your accountant and the BIR.",
+            done: "Net income is worked out for you and flows into the financial statements.",
+        },
+    }, {
+        key: "fs", group: "reports", tab: "Financial Statement", title: "Financial Statement", icon: "file", crumb: ["Financial Reports", "Financial Statement"], layout: "report",
+        heading: "Statement of Comprehensive Income", company: "SAMPLE FUEL STATION", period: "For the period Jul – Sep 2026",
+        subtabs: ["Income Statement", "Cash Flow", "Retained Earnings", "Changes in Equity"],
+        fields: [
+            { label: "Year", value: "2026" },
+        ],
+        report: {
+            cols: ["Account", "Amount", "% of Sales"], num: 1,
+            rows: [
+                { section: "Revenue" },
+                ["Sales – Diesel", "1,621,712.29", "100.00%"],
+                ["Less: Cost of Sales", "(508,928.57)", "31.38%"],
+                { total: ["Gross Profit", "1,112,783.72", "68.62%"] },
+                { section: "Operating Expenses" },
+                ["Salaries and Wages", "133,615.37", "8.24%"],
+                ["Utilities – Electricity", "140,463.74", "8.66%"],
+                { total: ["Total Operating Expenses", "274,079.11", "16.90%"] },
+                { net: ["Net Income", "838,704.61", "51.72%"] },
+            ],
+        },
+        button: "Search", toast: "Financial statements ready",
+        captions: {
+            fields: "Income Statement, Cash Flow, Retained Earnings and Changes in Equity. Pick the year.",
+            search: "Click Search.",
+            rows: "Built from the working trial balance, ready to print.",
+            done: "Hand it to your accountant or the bank as it is.",
         },
     },
 ];
@@ -459,7 +731,7 @@ CHAPTERS.forEach((c, i) => {
     if (!c.group) return NAV.push({ key: c.key, title: c.title, icon: c.icon, sub: c.crumb.join(" › "), idx: [i] });
     const g = NAV.find((n) => n.key === c.group);
     if (g) g.idx.push(i);
-    else NAV.push({ key: c.group, title: "Reports", icon: "chart", sub: "BIR & Tax · Trial Balance · Balance Sheet · Financial Statements", idx: [i] });
+    else NAV.push({ key: c.group, title: "Reports", icon: "chart", sub: "BIR & Tax · Books · Receivable · Payables · Statements", idx: [i] });
 });
 
 /* ---------- each chapter → a list of timed steps ---------- */
@@ -474,18 +746,18 @@ function buildSteps(ch) {
     if (ch.layout === "report") {
         const s = [];
         if (ch.menu) {
-            s.push({ k: "move", target: `m${ch.menu.pick}`, d: 800, cap: "menu" });
+            s.push({ k: "move", target: `m${ch.menu.pick}`, d: 700, cap: "menu" });
             s.push({ k: "pick", target: `m${ch.menu.pick}`, d: 500, cap: "menu" });
         }
         ch.fields.forEach((f, i) => {
             if (!typeable(f)) return;
-            s.push({ k: "move", target: `f${i}`, d: 520, cap: "fields" });
+            s.push({ k: "move", target: `f${i}`, d: 420, cap: "fields" });
             s.push({ k: "type", field: i, d: Math.min(1100, Math.max(450, f.value.length * 60)), cap: "fields" });
         });
         s.push({ k: "move", target: "save", d: 600, cap: "search" });
         s.push({ k: "click", d: 420, cap: "search" });
-        ch.report.rows.forEach((_, i) => s.push({ k: "row", row: i, d: 300, cap: "rows", still: true }));
-        s.push({ k: "done", d: 4400, cap: "done", still: true });
+        ch.report.rows.forEach((_, i) => s.push({ k: "row", row: i, d: 230, cap: "rows", still: true }));
+        s.push({ k: "done", d: 3200, cap: "done", still: true });
         return s;
     }
     if (ch.layout === "scanflow") return [
@@ -692,7 +964,7 @@ export default function WebsiteDemo() {
         </div>
     );
 
-    const sideOn = { dash: 0, product: 4, po: 2, grn: 4, sales: 1, purchase: 2, expense: 2, scan: 2, bir: 5, tb: 3, bs: 5, fs: 5 }[ch.key];
+    const sideOn = ch.group ? 5 : { dash: 0, product: 4, po: 2, grn: 4, sales: 1, purchase: 2, expense: 2, scan: 2 }[ch.key];
 
     // dashboard / reports
     const picking = step.k === "pick";
@@ -715,6 +987,23 @@ export default function WebsiteDemo() {
     const procAt = list.map((x, i) => (x.k === "proc" ? i : -1)).filter((i) => i >= 0);
     const procDone = procAt.filter((i) => si > i).length;
     const procNow = step.k === "proc" ? step.row : -1;
+
+    const cell = (c) => {
+        if (c == null || typeof c !== "object") return c;
+        if (c.link) return <u className="wd-lnk">{c.link}</u>;
+        if (c.pill) return <span className={`wd-st ${c.tone || "wait"}`}>{c.pill}</span>;
+        if (c.btns) return <span className="wd-rp-acts">{c.btns.map((b, k) => <i key={b} className={k === 0 && c.btns.length > 2 ? "go" : /Open/.test(b) ? "pri" : ""}>{b}</i>)}</span>;
+        return null;
+    };
+
+    // keep the active report tab in view (13 tabs)
+    const rtabs = useRef(null);
+    useEffect(() => {
+        const bar = rtabs.current;
+        const on = bar?.querySelector("button.on");
+        if (!bar || !on) return;
+        bar.scrollTo({ left: on.offsetLeft - bar.clientWidth / 2 + on.offsetWidth / 2, behavior: "smooth" });
+    }, [ci]);
 
     /* ---------- dashboard, drawn like FEMS Home ---------- */
     const dashScroll = useRef(null);
@@ -885,7 +1174,7 @@ export default function WebsiteDemo() {
                     <p>From the dashboard to your financial statements, every step below plays by itself. Pick a topic or pause any time.</p>
                 </div>
 
-                <div className={`wd ${full ? "fs" : ""}`} ref={wd}>
+                <div className={`wd ${full ? "wd-full" : ""}`} ref={wd}>
                     {/* chapters */}
                     <nav className="wd-chapters" aria-label="Demo topics">
                         {NAV.map((n, ni) => {
@@ -928,7 +1217,7 @@ export default function WebsiteDemo() {
                             </aside>
                             <div className="wd-main">
                                 {ch.group && (
-                                    <div className="wd-rtabs" role="tablist">
+                                    <div className="wd-rtabs" role="tablist" ref={rtabs}>
                                         {CHAPTERS.map((c, i) => c.group !== ch.group ? null : (
                                             <button key={c.key} type="button" role="tab" aria-selected={i === ci} className={i === ci ? "on" : ""} onClick={() => pick(i)}>{c.tab}</button>
                                         ))}
@@ -1022,9 +1311,11 @@ export default function WebsiteDemo() {
                                     <div className={`wd-card wd-report ${ch.menu ? "has-menu" : ""}`} key={ch.key}>
                                         {ch.menu && (
                                             <div className="wd-rp-menu">
-                                                <div className="wd-rp-menu-h"><Ico d={P.file} size={14} /> {ch.menu.title}</div>
+                                                <div className="wd-rp-menu-h">{ch.menu.title}</div>
                                                 {ch.menu.items.map((m, i) => (
-                                                    <span key={m} data-demo={`m${i}`} className={`${i === ch.menu.pick && (picking || picked) ? "on" : ""} ${i === ch.menu.pick && picking ? "press" : ""}`}>{m}</span>
+                                                    <span key={i} data-demo={`m${i}`} className={`${i === ch.menu.pick && (picking || picked) ? "on" : ""} ${i === ch.menu.pick && picking ? "press" : ""}`}>
+                                                        <b>{m[0]}</b><small>{m[1]}</small>{m[2] && <em>{m[2]}</em>}
+                                                    </span>
                                                 ))}
                                             </div>
                                         )}
@@ -1033,7 +1324,13 @@ export default function WebsiteDemo() {
                                                 <div className="wd-rp-empty"><Ico d={P.chart} size={30} /><span>Pick a report</span></div>
                                             ) : (
                                                 <>
+                                                    {ch.subtabs && <div className="wd-rp-sub">{ch.subtabs.map((t, i) => <span key={t} className={i === 0 ? "on" : ""}>{t}</span>)}</div>}
                                                     <div className="wd-rp-title"><b>{ch.company}</b><span>{ch.heading}</span><small>{ch.period}</small></div>
+                                                    {ch.aging && (
+                                                        <div className="wd-rp-aging">
+                                                            {ch.aging.map(([k, v, t]) => <span key={k} className={t}><small>{k}</small><b>{searched ? v : "-"}</b></span>)}
+                                                        </div>
+                                                    )}
                                                     <div className="wd-rp-bar">
                                                         {ch.fields.map((f, i) => (
                                                             <label key={i} className={`wd-f ${activeField === i ? "focus" : ""}`} data-demo={`f${i}`}>
@@ -1042,10 +1339,13 @@ export default function WebsiteDemo() {
                                                             </label>
                                                         ))}
                                                         <span className="wd-rp-btns">
-                                                            <span className={`wd-save ${clicking ? "press" : ""}`} data-demo="save">Search{clicking && <i className="wd-ripple" />}</span>
+                                                            <span className={`wd-save ${clicking ? "press" : ""}`} data-demo="save">{ch.button || "Search"}{clicking && <i className="wd-ripple" />}</span>
                                                             <span className="wd-b">Print ▾</span>
                                                         </span>
                                                     </div>
+                                                    {ch.banner && searched && (
+                                                        <div className="wd-rp-banner"><i><Ico d={P.check} size={14} /></i><span><b>{ch.banner.title}</b><small>{ch.banner.sub}</small></span><em>See details</em></div>
+                                                    )}
                                                     <div className={`wd-rp-table ${ch.report.wide ? "wide" : ""}`}>
                                                         <table>
                                                             <thead><tr>
@@ -1053,14 +1353,14 @@ export default function WebsiteDemo() {
                                                                 {ch.report.cols.map((c, j) => <th key={c} className={j >= ch.report.num ? "num" : ""}>{c}</th>)}
                                                             </tr></thead>
                                                             <tbody>
-                                                                {searched && ch.report.rows.slice(0, rowsShown).map((r, i) => {
+                                                                {(searched || ch.fields.length === 0) && searched && ch.report.rows.slice(0, rowsShown).map((r, i) => {
                                                                     const n = ch.report.cols.length + (ch.report.view ? 1 : 0);
                                                                     if (r.section) return <tr key={i} className="sec"><td colSpan={n}>{r.section}</td></tr>;
                                                                     const cells = r.total || r.net || r;
                                                                     return (
                                                                         <tr key={i} className={r.total ? "tot" : r.net ? "net" : ""}>
                                                                             {ch.report.view && <td className="view">{r.total ? "" : "View"}</td>}
-                                                                            {cells.map((c, j) => <td key={j} className={`${j >= ch.report.num ? "num" : ""} ${/^(\(|-\d)/.test(c) ? "neg" : ""}`}>{c}</td>)}
+                                                                            {cells.map((c, j) => <td key={j} className={`${j >= ch.report.num ? "num" : ""} ${typeof c === "string" && /^(\(|-\d)/.test(c) ? "neg" : ""}`}>{cell(c)}</td>)}
                                                                         </tr>
                                                                     );
                                                                 })}
