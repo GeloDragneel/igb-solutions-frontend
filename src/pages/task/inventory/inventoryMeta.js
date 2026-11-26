@@ -7,4 +7,5 @@ export const INVENTORY_TABS = [
   { to: `${INVENTORY_PATH}/stocks`, label: "Stocks" },
   { to: `${INVENTORY_PATH}/variance`, label: "Variance" },
   { to: `${INVENTORY_PATH}/internal-transfer`, label: "Internal Transfer" },
+  { to: `${INVENTORY_PATH}/settings`, label: "Settings" },
 ];

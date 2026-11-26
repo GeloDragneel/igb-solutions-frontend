@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Website.css";
+import WebsiteDemo from "./WebsiteDemo";
 import shotDesktop from "../assets/website/igb-desktop.jpg";
 import shotLogin from "../assets/website/app-login.jpg";
 import shotScan from "../assets/website/app-scan.jpg";
@@ -376,7 +377,7 @@ function AiTeam() {
     );
 }
 
-const NAV = [["features", "Features"], ["ai", "AI team"], ["how", "How it works"], ["mobile", "Mobile app"], ["pricing", "Pricing"], ["faq", "FAQ"]];
+const NAV = [["demo", "Demo"], ["features", "Features"], ["ai", "AI team"], ["how", "How it works"], ["mobile", "Mobile app"], ["pricing", "Pricing"], ["faq", "FAQ"]];
 
 const FAQ = [
     { q: "How do I get an account?", a: "Accounts are created by your administrator or by IGB. Once you have a username and password, use the Login button on this page." },
@@ -627,6 +628,9 @@ export default function Website() {
                 </div>
             </section>
 
+            {/* Demo: animated walkthrough of FEMS */}
+            <WebsiteDemo />
+
             {/* Highlights */}
             <section className="ws-section" id="features">
                 <div className="ws-wrap">
@@ -781,6 +785,7 @@ export default function Website() {
                     </div>
                     <div>
                         <h4>Product</h4>
+                        <a href="#demo" onClick={go("demo")}>Demo</a>
                         <a href="#features" onClick={go("features")}>Features</a>
                         <a href="#how" onClick={go("how")}>How it works</a>
                         <a href="#ai" onClick={go("ai")}>AI team</a>

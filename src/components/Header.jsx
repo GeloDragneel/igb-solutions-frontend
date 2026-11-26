@@ -175,7 +175,7 @@ export default function Header({ onMenu }) {
     // the next login sees the birthday popup again
     try { Object.keys(sessionStorage).filter((k) => k.startsWith("bday-popup:")).forEach((k) => sessionStorage.removeItem(k)); } catch { /* ignore */ }
     await logout();
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
   };
 
   /* ---------- business name area ---------- */
