@@ -27,6 +27,8 @@ const P = {
     file: "M7 3h7l5 5v13H7zM14 3v5h5",
     expand: "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5",
     shrink: "M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5",
+    sound: "M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12",
+    mute: "M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6",
 };
 const Ico = ({ d, size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
@@ -735,7 +737,38 @@ CHAPTERS.forEach((c, i) => {
 });
 
 /* ---------- each chapter → a list of timed steps ---------- */
+// the teacher opens every lesson: what we are about to learn
+const INTRO = {
+    dash: ["How to read your dashboard", "First, your Home page. Let me show you where your business stands at a glance."],
+    product: ["How to add a product", "Let's add a product. Its sales, inventory and cost accounts are set up for you."],
+    po: ["How to make a purchase order", "Next, let's order stock from a supplier with a purchase order."],
+    grn: ["How to receive inventory", "Your order arrived. Let's receive it into inventory."],
+    sales: ["How to enter your sales", "Now let's enter a sale. VAT and cost of sales are worked out for you."],
+    purchase: ["How to enter a vendor invoice", "Let's record the supplier's bill, with input VAT and withholding."],
+    expense: ["How to enter your expenses", "Let's record an expense, like your electric bill."],
+    scan: ["How to scan a receipt", "No typing this time. Let's scan a receipt with your phone."],
+    birret: ["How to prepare a BIR return", "Time for taxes. Let's prepare your VAT return straight from your books."],
+    vat: ["How to check your VAT", "Let's see your output and input VAT, month by month."],
+    esub: ["How to make your e-Sub files", "Let's make the DAT files the BIR needs, checked for you."],
+    its: ["How to see your income tax", "Let's work out your income tax from sales, cost of sales and expenses."],
+    jr: ["How to read your journals", "Every entry you made is already in the journals. Let's take a look."],
+    rpt: ["How to pull your reports", "Let's list your sales, purchases and expenses for the period."],
+    gl: ["How to read your ledgers", "Let's follow one account, entry by entry, with its running balance."],
+    ar: ["How to track your receivables", "Who owes you money? Let's check, by how long it has been unpaid."],
+    ap: ["How to track your payables", "And who do you owe? Let's check your payables before they're due."],
+    bs: ["How to read your balance sheet", "Let's see your assets, liabilities and equity, year against year."],
+    tb: ["How to run a trial balance", "Let's check that your books balance."],
+    wtb: ["How to use the working trial balance", "Let's roll the year into the income statement and balance sheet."],
+    fs: ["How to get your financial statements", "Finally, your financial statements, ready to print."],
+};
+
 function buildSteps(ch) {
+    const intro = INTRO[ch.key];
+    const rest = buildLessonSteps(ch);
+    return intro ? [{ k: "intro", d: 3000, cap: "intro", text: intro[1], still: true, smooth: true }, ...rest] : rest;
+}
+
+function buildLessonSteps(ch) {
     if (ch.layout === "dashboard") return [
         { k: "hero", d: 2800, cap: "hero", still: true, smooth: true },
         { k: "cards", d: 2600, cap: "cards", still: true, smooth: true },
@@ -785,6 +818,63 @@ function buildSteps(ch) {
     s.push({ k: "click", d: 420, cap: "save" });
     s.push({ k: "done", d: 4400, cap: "done" });
     return s;
+}
+
+/* ---------- the AI teacher: walks in when the demo scrolls into view and talks you through each lesson ---------- */
+function TeacherBot({ show, talk, cheer, big = false, uid = "s" }) {
+    const g = `url(#wdBotMetal-${uid})`;
+    return (
+        <div className={`wd-bot ${big ? "big" : ""} ${show ? "in" : ""} ${talk ? "talk" : ""} ${cheer ? "cheer" : ""}`} aria-hidden="true">
+            <svg viewBox="0 0 130 160" overflow="visible">
+                <defs>
+                    <linearGradient id={`wdBotMetal-${uid}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#f4f7ff" />
+                        <stop offset="1" stopColor="#c5d0ea" />
+                    </linearGradient>
+                </defs>
+                <ellipse className="wd-bot-shadow" cx="60" cy="154" rx="30" ry="5" />
+                <g className="wd-bot-all">
+                    {/* legs */}
+                    <rect x="44" y="118" width="12" height="28" rx="6" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                    <rect x="64" y="118" width="12" height="28" rx="6" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                    <rect x="39" y="142" width="20" height="9" rx="4.5" fill="#8ea0c8" stroke="#2b3a67" strokeWidth="2" />
+                    <rect x="61" y="142" width="20" height="9" rx="4.5" fill="#8ea0c8" stroke="#2b3a67" strokeWidth="2" />
+                    {/* resting arm */}
+                    <rect className="wd-bot-arm-l" x="22" y="78" width="12" height="34" rx="6" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                    {/* body */}
+                    <rect x="32" y="72" width="56" height="50" rx="16" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                    <rect x="42" y="80" width="5" height="26" rx="2.5" fill="#8ea0c8" />
+                    <rect x="73" y="80" width="5" height="26" rx="2.5" fill="#8ea0c8" />
+                    <circle className="wd-bot-core" cx="60" cy="95" r="9" fill="#7df9ff" stroke="#2b3a67" strokeWidth="2" />
+                    {/* pointing arm with a pointer stick */}
+                    <g className="wd-bot-arm">
+                        <rect x="84" y="76" width="30" height="11" rx="5.5" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                        <circle cx="116" cy="81.5" r="6.5" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                        <line x1="118" y1="80" x2="150" y2="62" stroke="#b45309" strokeWidth="3.5" strokeLinecap="round" />
+                        <circle cx="150" cy="62" r="3" fill="#fbbf24" />
+                    </g>
+                    {/* head */}
+                    <g className="wd-bot-head">
+                        <circle cx="28" cy="44" r="8" fill="#8ea0c8" stroke="#2b3a67" strokeWidth="2" />
+                        <circle cx="92" cy="44" r="8" fill="#8ea0c8" stroke="#2b3a67" strokeWidth="2" />
+                        <rect x="28" y="18" width="64" height="52" rx="24" fill={g} stroke="#2b3a67" strokeWidth="2" />
+                        <rect x="37" y="30" width="46" height="22" rx="11" fill="#1e2a52" />
+                        <g className="wd-bot-eyes">
+                            <ellipse cx="51" cy="41" rx="4.5" ry="5.5" fill="#67e8f9" />
+                            <ellipse cx="69" cy="41" rx="4.5" ry="5.5" fill="#67e8f9" />
+                        </g>
+                        <path className="wd-bot-mouth" d="M53 60 q7 5 14 0" stroke="#2b3a67" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                        {/* teacher's cap */}
+                        <rect x="45" y="13" width="30" height="9" rx="2" fill="#1f2937" />
+                        <polygon points="60,1 97,12 60,23 23,12" fill="#111827" />
+                        <path className="wd-bot-tassel" d="M60 12 L90 17 L90 30" stroke="#fbbf24" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                        <circle cx="90" cy="31" r="3" fill="#fbbf24" />
+                    </g>
+                </g>
+            </svg>
+            {cheer && <span className="wd-bot-star">+1 ★</span>}
+        </div>
+    );
 }
 
 export default function WebsiteDemo() {
@@ -848,6 +938,10 @@ export default function WebsiteDemo() {
     // reduced motion: show every chapter finished
     useEffect(() => { if (reduced) { setSi(list.length - 1); setFrac(1); } }, [reduced, ci, list.length]);
 
+    // voice: while the teacher is still speaking, the last step of a line waits for it (max 12 s)
+    const voiceHold = useRef(false);
+    const holdSince = useRef(0);
+
     // the clock: move to the next step / chapter
     useEffect(() => {
         if (!run) return;
@@ -858,6 +952,12 @@ export default function WebsiteDemo() {
             const f = Math.min(1, (now - start) / step.d);
             if (smooth) setFrac(f);
             if (f < 1) { raf = requestAnimationFrame(tick); return; }
+            const lineEnds = si === list.length - 1 || list[si + 1].cap !== step.cap;
+            if (lineEnds && voiceHold.current) {
+                if (!holdSince.current) holdSince.current = now;
+                if (now - holdSince.current < 12000) { raf = requestAnimationFrame(tick); return; }
+            }
+            holdSince.current = 0;
             setFrac(0);
             if (si < list.length - 1) setSi(si + 1);
             else { setSi(0); setCi((ci + 1) % CHAPTERS.length); }
@@ -883,6 +983,52 @@ export default function WebsiteDemo() {
     const typeAt = {};    // field index → its "type" step
     list.forEach((x, i) => { if (x.k === "type") typeAt[x.field] = i; });
     const done = step.k === "done";
+
+    // teacher: appears the first time the demo is on screen, types each line like a game tutorial
+    const [botIn, setBotIn] = useState(false);
+    useEffect(() => { if (inView || full) setBotIn(true); }, [inView, full]);
+    const capText = step.text || ch.captions[step.cap] || "";
+    const [typed, setTyped] = useState(0);
+    useEffect(() => {
+        if (reduced) { setTyped(capText.length); return; }
+        setTyped(0);
+        let n = 0;
+        const t = setInterval(() => { n += 2; setTyped(n); if (n >= capText.length) clearInterval(t); }, 22);
+        return () => clearInterval(t);
+    }, [capText, reduced]);
+    // voice (browser text-to-speech) – off until the visitor turns it on
+    const [voice, setVoice] = useState(false);
+    const [speaking, setSpeaking] = useState(false);
+    const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+    useEffect(() => {
+        if (!canSpeak) return;
+        const synth = window.speechSynthesis;
+        synth.cancel();
+        voiceHold.current = false;
+        setSpeaking(false);
+        if (!voice || !capText || !(inView || full) || !playing) return;
+        const u = new SpeechSynthesisUtterance(capText);
+        const vs = synth.getVoices();
+        u.voice = vs.find((v) => /^en/i.test(v.lang) && /google us english|samantha|zira|aria|jenny|female/i.test(v.name))
+            || vs.find((v) => /^en-(US|PH|GB)/i.test(v.lang)) || null;
+        u.lang = u.voice?.lang || "en-US";
+        u.rate = 1.02;
+        u.pitch = 1.1;
+        u.onstart = () => setSpeaking(true);
+        u.onend = u.onerror = () => { voiceHold.current = false; setSpeaking(false); };
+        voiceHold.current = true;
+        synth.speak(u);
+        return () => { u.onend = u.onerror = u.onstart = null; };
+    }, [voice, capText, ci, inView, full, playing, canSpeak]);
+    useEffect(() => () => { if (canSpeak) window.speechSynthesis.cancel(); }, [canSpeak]);
+    const toggleVoice = () => setVoice((v) => !v);
+    const talking = botIn && (typed < capText.length || speaking);
+    // a star for every lesson finished
+    const starred = useRef(new Set());
+    const [stars, setStars] = useState(0);
+    useEffect(() => {
+        if (done && !starred.current.has(ch.key)) { starred.current.add(ch.key); setStars(starred.current.size); }
+    }, [done, ch.key]);
     const fieldText = (f, i) => {
         if (f.ro) return done && f.done ? f.done : f.value;
         if (f.auto) return si > (typeAt[f.auto.after] ?? -1) ? f.value : "";
@@ -1195,6 +1341,11 @@ export default function WebsiteDemo() {
                             <button type="button" className="wd-play" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"}>
                                 <Ico d={playing ? P.pause : P.play} size={16} /> {playing ? "Pause" : "Play"}
                             </button>
+                            {canSpeak && (
+                                <button type="button" className={`wd-play wd-play-voice ${voice ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voice} aria-label={voice ? "Turn voice off" : "Turn voice on"}>
+                                    <Ico d={voice ? P.sound : P.mute} size={16} /> Voice
+                                </button>
+                            )}
                             <button type="button" className="wd-play" onClick={toggleFull} aria-label={full ? "Exit full screen" : "Full screen"}>
                                 <Ico d={full ? P.shrink : P.expand} size={16} /> {full ? "Exit" : "Full screen"}
                             </button>
@@ -1481,17 +1632,52 @@ export default function WebsiteDemo() {
                             </div>
                         </div>
 
+                        {/* lesson title card: the teacher introduces the module */}
+                        {step.k === "intro" && INTRO[ch.key] && (
+                            <div className="wd-intro" key={`intro-${ci}`}>
+                                <div className="wd-intro-card">
+                                    <span className="wd-intro-lv">Lesson {navAt + 1}{ch.tab ? ` · ${ch.tab}` : ""}</span>
+                                    <h4>{INTRO[ch.key][0]}</h4>
+                                    <p>{INTRO[ch.key][1]}</p>
+                                    <span className="wd-intro-bar"><i style={{ width: `${frac * 100}%` }} /></span>
+                                </div>
+                            </div>
+                        )}
+
                         {/* fake cursor */}
                         <span className={`wd-cursor ${clicking || picking ? "click" : ""} ${onPhone || ch.layout === "dashboard" ? "hide" : ""}`} style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }} aria-hidden="true">
                             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2l15 9-7 1.5L8.5 20z" fill="#111827" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" /></svg>
                         </span>
 
-                        {/* narration */}
-                        <div className="wd-caption" key={`${ci}-${step.cap}`}>
-                            <span className="wd-step">{navAt + 1}/{NAV.length}</span>
-                            {ch.captions[step.cap] || ""}
+                        {/* the AI teacher + what it says */}
+                        <TeacherBot show={botIn} talk={talking} cheer={done} />
+                        <div className={`wd-caption wd-bubble ${botIn ? "in" : ""}`} key={`${ci}-${step.cap}`}>
+                            <span className="wd-bubble-h">
+                                <span className="wd-step">Lesson {navAt + 1}/{NAV.length}</span>
+                                <b>{ch.title}</b>
+                                <span className="wd-stars" title="Lessons finished">★ {stars}</span>
+                            </span>
+                            <span className="wd-bubble-t">{capText.slice(0, typed)}{talking && <i className="wd-type" />}</span>
                         </div>
                     </div>
+
+                    {/* big AI teacher beside the window (wide screens) */}
+                    <aside className={`wd-coach ${botIn ? "in" : ""}`} aria-live="polite">
+                        <div className="wd-coach-bubble" key={`${ci}-${step.cap}`}>
+                            <span className="wd-bubble-h">
+                                <span className="wd-step">Lesson {navAt + 1}/{NAV.length}</span>
+                                <span className="wd-stars" title="Lessons finished">★ {stars}</span>
+                            </span>
+                            <b className="wd-coach-title">{ch.title}</b>
+                            <span className="wd-bubble-t">{capText.slice(0, typed)}{talking && <i className="wd-type" />}</span>
+                        </div>
+                        <TeacherBot big uid="b" show={botIn} talk={talking} cheer={done} />
+                        {canSpeak && (
+                            <button type="button" className={`wd-voice ${voice ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voice}>
+                                <Ico d={voice ? P.sound : P.mute} size={16} /> {voice ? "Voice on" : "Turn on voice"}
+                            </button>
+                        )}
+                    </aside>
                 </div>
             </div>
         </section>

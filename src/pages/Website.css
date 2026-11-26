@@ -1508,6 +1508,198 @@
     gap: 16px;
 }
 
+/* Features: follow the peso */
+.ws-trace {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 28px;
+    margin-bottom: 40px;
+}
+
+.ws-trace::before {
+    /* the line joining the steps, with a dot running along it */
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 38px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, #8b3ff0 45%, transparent) 0 8px, transparent 8px 14px);
+}
+
+.ws-trace::after {
+    content: "";
+    position: absolute;
+    top: 33px;
+    left: 12%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--ws-grad);
+    box-shadow: 0 0 0 5px color-mix(in srgb, #8b3ff0 18%, transparent);
+    animation: ws-trace-run 6s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+
+@keyframes ws-trace-run {
+    0% {
+        left: 12%;
+        opacity: 0;
+    }
+
+    6% {
+        opacity: 1;
+    }
+
+    90% {
+        left: calc(88% - 12px);
+        opacity: 1;
+    }
+
+    100% {
+        left: calc(88% - 12px);
+        opacity: 0;
+    }
+}
+
+.ws-trace-step {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 0 6px;
+    animation: ws-trace-lit 6s ease infinite;
+    animation-delay: calc(var(--i) * 1.6s);
+}
+
+.ws-trace-ic {
+    display: inline-grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    margin-bottom: 10px;
+    border-radius: 22px;
+    background: var(--card, #fff);
+    border: 1px solid var(--line, #e3e8f1);
+    color: var(--brand, #2563eb);
+    box-shadow: 0 14px 30px -18px rgba(91, 63, 240, .5);
+    transition: background .3s, color .3s;
+}
+
+@keyframes ws-trace-lit {
+
+    0%,
+    22%,
+    100% {
+        transform: none;
+    }
+
+    8% {
+        transform: translateY(-4px);
+    }
+}
+
+.ws-trace-step:last-child .ws-trace-ic {
+    background: var(--ws-grad);
+    color: #fff;
+    border-color: transparent;
+}
+
+.ws-trace-step small {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--muted, #69738a);
+}
+
+.ws-trace-step b {
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.3px;
+}
+
+.ws-trace-v {
+    font-size: 13px;
+    color: var(--muted, #69738a);
+    font-family: ui-monospace, Consolas, monospace;
+}
+
+.ws-hl2-card {
+    position: relative;
+    overflow: hidden;
+    padding: 24px 22px 22px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--bg, #eef2f8), var(--card, #fff) 70%);
+    border: 1px solid var(--line, #e3e8f1);
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+
+.ws-hl2-card:hover {
+    transform: translateY(-3px);
+    border-color: transparent;
+    background: linear-gradient(var(--card, #fff), var(--card, #fff)) padding-box, var(--ws-grad) border-box;
+    box-shadow: 0 20px 40px -22px rgba(139, 63, 240, .45);
+}
+
+.ws-hl2-n {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    background: var(--ws-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    opacity: .25;
+}
+
+.ws-hl2-card h3 {
+    font-size: 17px;
+    margin: 16px 0 6px;
+}
+
+.ws-hl2-card p {
+    font-size: 14px;
+    color: var(--muted, #69738a);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .ws-trace::after,
+    .ws-trace-step {
+        animation: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .ws-trace {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px 12px;
+    }
+
+    .ws-trace::before,
+    .ws-trace::after {
+        display: none;
+    }
+
+    .ws-trace-ic {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+    }
+
+    .ws-trace-step b {
+        font-size: 16px;
+    }
+}
+
 /* Statement */
 .ws-statement {
     padding: 72px 0;

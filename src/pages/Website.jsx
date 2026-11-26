@@ -157,10 +157,18 @@ function ModuleCarousel() {
 }
 
 const HIGHLIGHTS = [
-    { icon: "bir", title: "BIR reports from your entries", text: "Returns, 2307, VAT summary, e-Submission, percentage and withholding tax summaries." },
-    { icon: "sales", title: "VAT and withholding per line", text: "Every invoice line carries its own tax, so totals always tie to the details." },
-    { icon: "book", title: "Books and statements", text: "Journals, ledgers, trial balance, balance sheet, cash flow and changes in equity." },
-    { icon: "log", title: "Every change is logged", text: "User logs show who added, edited or voided what, and when." },
+    { icon: "sales", title: "Tax on every line", text: "VAT and withholding sit on each invoice line, so totals always tie back to the details." },
+    { icon: "bir", title: "Filed, not retyped", text: "Returns, 2307, VAT summary and e-Sub files come from the entries you already made." },
+    { icon: "book", title: "Books that keep up", text: "Journals, ledgers, trial balance and statements update the moment you record." },
+    { icon: "log", title: "Nothing changes quietly", text: "Every add, edit and void is logged with the user and the time." },
+];
+
+// "follow the peso": a report figure traced down to the receipt behind it
+const TRACE = [
+    { icon: "bir", k: "VAT Summary", v: "Output VAT · Jul", n: "₱61,491.61" },
+    { icon: "book", k: "Sales Journal", v: "SJ 0461 · Output VAT", n: "₱120.00" },
+    { icon: "sales", k: "Sales Invoice", v: "INV-0461 · Walk In", n: "₱1,120.00" },
+    { icon: "scan", k: "Scanned receipt", v: "S20260703.pdf", n: "Original" },
 ];
 
 const STEPS = [
@@ -635,13 +643,24 @@ export default function Website() {
             <section className="ws-section" id="features">
                 <div className="ws-wrap">
                     <div className="ws-head">
-                        <span className="ws-eyebrow">Built for BIR compliance</span>
-                        <h2>Not a black box</h2>
-                        <p>Every report comes from entries you can open, trace and correct.</p>
+                        <span className="ws-eyebrow">Traceable by design</span>
+                        <h2>Every peso has a <span className="ws-grad-text">paper trail</span></h2>
+                        <p>Click any figure in a report and follow it down to the entry, the invoice and the receipt behind it.</p>
                     </div>
-                    <div className="ws-hl">
-                        {HIGHLIGHTS.map((h) => (
-                            <article className="ws-card" key={h.title}>
+                    <div className="ws-trace" aria-label="A VAT figure traced to its receipt">
+                        {TRACE.map((t, i) => (
+                            <div className="ws-trace-step" key={t.k} style={{ "--i": i }}>
+                                <span className="ws-trace-ic"><Svg d={I[t.icon]} size={20} /></span>
+                                <small>{t.k}</small>
+                                <b>{t.n}</b>
+                                <span className="ws-trace-v">{t.v}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="ws-hl ws-hl2">
+                        {HIGHLIGHTS.map((h, i) => (
+                            <article className="ws-hl2-card" key={h.title}>
+                                <span className="ws-hl2-n">0{i + 1}</span>
                                 <span className="ws-ic"><Svg d={I[h.icon]} /></span>
                                 <h3>{h.title}</h3>
                                 <p>{h.text}</p>

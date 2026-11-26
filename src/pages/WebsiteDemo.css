@@ -2945,3 +2945,532 @@ body.wd-lock {
         flex: 0 0 150px;
     }
 }
+
+/* ===== AI teacher (game-style guide) ===== */
+.wd-bot {
+    position: absolute;
+    left: 62px;
+    bottom: 6px;
+    z-index: 7;
+    width: 104px;
+    pointer-events: none;
+    transform: translateY(160%) rotate(-8deg);
+    opacity: 0;
+    transition: transform .9s cubic-bezier(.2, 1.5, .4, 1), opacity .3s;
+}
+
+.wd-bot.in {
+    transform: none;
+    opacity: 1;
+}
+
+.wd-bot svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    filter: drop-shadow(0 10px 14px rgba(16, 24, 40, .28));
+}
+
+.wd-bot-shadow {
+    fill: rgba(15, 23, 41, .25);
+}
+
+.wd-bot-all {
+    animation: wd-bot-float 3s ease-in-out infinite;
+}
+
+@keyframes wd-bot-float {
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.wd-bot-eyes {
+    transform-origin: 60px 41px;
+    animation: wd-bot-blink 4s infinite;
+}
+
+@keyframes wd-bot-blink {
+
+    0%,
+    93%,
+    100% {
+        transform: scaleY(1);
+    }
+
+    96% {
+        transform: scaleY(.1);
+    }
+}
+
+.wd-bot-core {
+    animation: wd-bot-glow 2s ease-in-out infinite;
+}
+
+@keyframes wd-bot-glow {
+    50% {
+        fill: #22d3ee;
+    }
+}
+
+.wd-bot-arm {
+    transform-origin: 88px 81px;
+    transform: rotate(28deg);
+    transition: transform .45s cubic-bezier(.3, 1.4, .5, 1);
+}
+
+.wd-bot-head {
+    transform-origin: 60px 68px;
+    transition: transform .4s;
+}
+
+.wd-bot-mouth {
+    transform-origin: 60px 60px;
+}
+
+.wd-bot-tassel {
+    transform-origin: 90px 17px;
+    animation: wd-bot-tassel 3s ease-in-out infinite;
+}
+
+@keyframes wd-bot-tassel {
+    50% {
+        transform: rotate(10deg);
+    }
+}
+
+/* talking: points at the screen, nods, mouth moves */
+.wd-bot.talk .wd-bot-arm {
+    transform: rotate(-14deg);
+    animation: wd-bot-point .9s ease-in-out infinite;
+}
+
+@keyframes wd-bot-point {
+    50% {
+        transform: rotate(-22deg);
+    }
+}
+
+.wd-bot.talk .wd-bot-head {
+    transform: rotate(4deg);
+}
+
+.wd-bot.talk .wd-bot-mouth {
+    animation: wd-bot-talk .22s ease-in-out infinite alternate;
+}
+
+@keyframes wd-bot-talk {
+    to {
+        transform: scaleY(-1.2);
+    }
+}
+
+/* lesson done: a little jump and a star */
+.wd-bot.cheer .wd-bot-all {
+    animation: wd-bot-jump .7s cubic-bezier(.3, 1.6, .5, 1) 2;
+}
+
+@keyframes wd-bot-jump {
+    40% {
+        transform: translateY(-14px) rotate(-3deg);
+    }
+}
+
+.wd-bot.cheer .wd-bot-arm {
+    transform: rotate(-50deg);
+}
+
+.wd-bot-star {
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    translate: -50% 0;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 800;
+    color: #f59e0b;
+    text-shadow: 0 1px 0 #fff;
+    animation: wd-bot-star 1.4s ease-out forwards;
+}
+
+@keyframes wd-bot-star {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(.6);
+    }
+
+    25% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-26px);
+    }
+}
+
+/* speech bubble (replaces the plain caption bar) */
+.wd-caption.wd-bubble {
+    left: 178px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 9px 14px 11px;
+    background: #fff;
+    color: var(--ink, #1b2437);
+    border: 2px solid #1e2a52;
+    border-radius: 16px;
+    box-shadow: 0 12px 28px -14px rgba(16, 24, 40, .45);
+    backdrop-filter: none;
+    opacity: 0;
+    transform: translateY(10px) scale(.96);
+    transition: opacity .3s .5s, transform .4s .5s;
+    animation: none;
+}
+
+.wd-caption.wd-bubble.in {
+    opacity: 1;
+    transform: none;
+}
+
+.wd-caption.wd-bubble::before {
+    content: "";
+    position: absolute;
+    left: -11px;
+    bottom: 16px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-left: 2px solid #1e2a52;
+    border-bottom: 2px solid #1e2a52;
+    transform: rotate(45deg);
+    border-radius: 0 0 0 4px;
+}
+
+.wd-bubble-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.wd-bubble-h .wd-step {
+    color: #fff;
+}
+
+.wd-bubble-h b {
+    font-size: 11.5px;
+    color: var(--muted, #69738a);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wd-stars {
+    margin-left: auto;
+    flex: none;
+    font-weight: 800;
+    color: #f59e0b;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+}
+
+.wd-bubble-t {
+    font-size: 13.5px;
+    font-weight: 500;
+    min-height: 1.5em;
+}
+
+.wd-type {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -2px;
+    background: #5b5bf0;
+    animation: wd-type .6s steps(1) infinite;
+}
+
+@keyframes wd-type {
+    50% {
+        opacity: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .wd-bot {
+        left: 4px;
+        width: 70px;
+        bottom: 4px;
+    }
+
+    .wd-caption.wd-bubble {
+        left: 80px;
+        right: 8px;
+    }
+
+    .wd-bubble-h b {
+        display: none;
+    }
+
+    .wd-bubble-t {
+        font-size: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .wd-bot,
+    .wd-bot * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ===== Big AI teacher beside the window + voice ===== */
+.wd-coach {
+    display: none;
+}
+
+.wd-play.on {
+    background: var(--ws-grad, #4f46e5);
+    color: #fff;
+    border-color: transparent;
+}
+
+@media (min-width: 1400px) {
+    .ws-demo>.ws-wrap {
+        max-width: 1780px;
+    }
+
+    .wd,
+    .wd.wd-full {
+        grid-template-columns: 270px minmax(0, 1fr) 250px;
+    }
+
+    .wd-win .wd-bot,
+    .wd-win .wd-caption.wd-bubble {
+        display: none;
+    }
+
+    .wd-coach {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        min-width: 0;
+        padding-bottom: 8px;
+    }
+
+    .wd-coach-bubble {
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 14px 16px 16px;
+        background: #fff;
+        border: 2px solid #1e2a52;
+        border-radius: 20px;
+        box-shadow: 0 18px 36px -20px rgba(16, 24, 40, .45);
+        opacity: 0;
+        transform: translateY(12px) scale(.95);
+        transition: opacity .35s .6s, transform .45s .6s cubic-bezier(.3, 1.4, .5, 1);
+    }
+
+    .wd-coach.in .wd-coach-bubble {
+        opacity: 1;
+        transform: none;
+    }
+
+    .wd-coach-bubble::after {
+        content: "";
+        position: absolute;
+        left: 58%;
+        bottom: -11px;
+        width: 18px;
+        height: 18px;
+        background: #fff;
+        border-right: 2px solid #1e2a52;
+        border-bottom: 2px solid #1e2a52;
+        transform: rotate(45deg);
+        border-radius: 0 0 4px 0;
+    }
+
+    .wd-coach-title {
+        font-size: 15px;
+    }
+
+    .wd-coach .wd-bubble-t {
+        font-size: 14.5px;
+        line-height: 1.5;
+        min-height: 4.5em;
+    }
+
+    .wd-bot.big {
+        position: relative;
+        left: auto;
+        bottom: auto;
+        width: 230px;
+        margin-right: -10px;
+        z-index: 1;
+    }
+
+    .wd-bot.big svg {
+        transform: scaleX(-1);
+        filter: drop-shadow(0 22px 26px rgba(16, 24, 40, .25));
+    }
+
+    .wd-bot.big .wd-bot-star {
+        font-size: 20px;
+        top: -4px;
+    }
+
+    .wd-voice {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        background: #fff;
+        color: var(--ink, #1b2437);
+        border: 1px solid var(--line, #e3e8f1);
+        box-shadow: 0 6px 16px -10px rgba(16, 24, 40, .3);
+    }
+
+    .wd-voice.on {
+        background: var(--ws-grad, #4f46e5);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .wd-voice:not(.on) {
+        animation: wd-voice-nudge 2.4s ease-in-out infinite;
+    }
+
+    @keyframes wd-voice-nudge {
+        50% {
+            box-shadow: 0 0 0 6px rgba(139, 63, 240, .15);
+        }
+    }
+}
+
+@media (min-width: 1400px) and (prefers-reduced-motion: reduce) {
+    .wd-voice {
+        animation: none !important;
+    }
+}
+
+.wd-ctrl {
+    flex-wrap: wrap;
+}
+
+.wd-ctrl .wd-play {
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+@media (min-width: 1400px) {
+    .wd-play-voice {
+        display: none !important;
+    }
+}
+
+/* ===== Lesson intro card ===== */
+.wd-intro {
+    position: absolute;
+    inset: 46px 0 0 0;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: color-mix(in srgb, #eef2f8 55%, transparent);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    animation: wd-intro-bg .3s ease;
+}
+
+@keyframes wd-intro-bg {
+    from {
+        opacity: 0;
+    }
+}
+
+.wd-intro-card {
+    width: min(460px, 100%);
+    text-align: center;
+    padding: 26px 28px 22px;
+    border-radius: 22px;
+    background: #fff;
+    border: 2px solid #1e2a52;
+    box-shadow: 0 30px 60px -30px rgba(16, 24, 40, .5);
+    animation: wd-intro-pop .55s cubic-bezier(.3, 1.5, .5, 1);
+}
+
+@keyframes wd-intro-pop {
+    from {
+        opacity: 0;
+        transform: scale(.85) translateY(14px);
+    }
+}
+
+.wd-intro-lv {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--ws-grad, #4f46e5);
+}
+
+.wd-intro-card h4 {
+    margin: 12px 0 6px;
+    font-size: 22px;
+    letter-spacing: -.3px;
+    color: var(--ink, #1b2437);
+}
+
+.wd-intro-card p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted, #69738a);
+}
+
+.wd-intro-bar {
+    display: block;
+    height: 6px;
+    margin-top: 18px;
+    border-radius: 999px;
+    background: #eef1f6;
+    overflow: hidden;
+}
+
+.wd-intro-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--ws-grad, #4f46e5);
+}
+
+@media (max-width: 640px) {
+    .wd-intro-card h4 {
+        font-size: 18px;
+    }
+
+    .wd-intro-card {
+        padding: 20px 18px 18px;
+    }
+}
